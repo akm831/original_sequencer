@@ -14,9 +14,10 @@
 2. `docs/architecture.md`
 3. `docs/sequencer.md`
 4. `docs/pattern.md`
-5. 対象Engineの仕様（`docs/sampler.md`、`docs/synth.md`、`docs/harmony.md`）
-6. `docs/decisions.md`
-7. `docs/roadmap.md`
+5. `docs/persistence.md`
+6. 対象Engineの仕様（`docs/sampler.md`、`docs/synth.md`、`docs/harmony.md`）
+7. `docs/decisions.md`
+8. `docs/roadmap.md`
 
 コードと仕様が矛盾する場合、黙ってどちらかを選ばないでください。原則として文書化された仕様を優先し、設計を意図的に変更する場合は仕様書も更新してください。
 
@@ -41,6 +42,8 @@ Trackは「ドラムTrack」「メロディTrack」と固定するのではな�
 Stepのデータ構造は、将来のProbability、Micro Timing、Conditional Trigger、Repeat / Ratchet、Sample Lock、Parameter Lockを追加できるよう拡張可能にしてください。
 
 音楽的なTimingは、ミリ秒だけで保存せず、高解像度の音楽時間表現を使用します。現時点の設計目標は960 PPQNです。
+
+PersistenceではProject ModelとFile Format実装を分離し、ProjectをPlatform固有の絶対Pathだけへ依存させないでください。保存Schemaには明示的なVersionを持たせ、SampleはStable Asset IDで参照します。
 
 ## 実装スタイル
 
@@ -70,6 +73,8 @@ Stepのデータ構造は、将来のProbability、Micro Timing、Conditional Tr
 - SamplerとSynthは可能な限り同じSequencer semanticsを共有
 - ChordはSynth Presetに焼き込まず、通常のNote Eventとして表現
 - Factory Contentは再配布可能なLicenseのみ使用
+- Imported SampleはPortable Project Assetとして扱う
+- Preset名だけでなく実際のEngine StateをProjectへ保存する
 
 ## 設計判断を行うとき
 
