@@ -93,6 +93,14 @@ Oscillator Wave、Filter Type、Voice Mode等のDiscrete Parameter切替は、Cl
 
 将来のChord / Harmony機能はAudio Engineより上位に置き、通常のNoteを生成します。特殊なSynth PresetだけでChord機能を実現しません。
 
+### Harmony初期Chord方針
+
+初期Harmony機能は、最大4音程度のChordを簡単に入力・再生できることを優先します。
+
+Triadおよび7th系Chordを中心にしつつ、内部データモデルは4音固定にしません。
+
+将来的には9th、11th、13th、add系、Altered Tension等のExtended Chordを扱えるようにし、Harmony Engineは任意数のGenerated Notesを扱える設計とします。
+
 ### Factory Content
 
 同梱Sample / Presetは再配布可能なLicenseが明確なものだけを使用します。
@@ -192,10 +200,13 @@ Oscillator Wave、Filter Type、Voice Mode等のDiscrete Parameter切替は、Cl
 詳細未定:
 
 - Chord MetadataとGenerated Notesのどちらを永続化するか
-- Initial Chord Vocabulary
+- 初期UIで表示するChord Vocabularyの具体範囲
+- Extended Chordを`Chord Type`だけで表すか、Base Chord + Extension / Alterationで表すか
 - Scale Model
 - Chord Suggestion Behavior
 - Voicing Constraints
+- Tension Chord時の省略音（Omit）Rule
+- Synth Voice Stealingを考慮した実用上の最大Chord構成音数
 
 ## Decision Log形式
 
@@ -229,4 +240,19 @@ Sub Oscillator、FM、Wavetable、複数LFO、Modulation Matrixを初期版か�
 影響:
 初期Synthは機能数よりSequencer連携と操作性を優先する。
 高度なSynthesis機能は後からSynth Engine内部へ追加する。
+
+2026-09-12 — HarmonyのChord音数とTension対応
+決定:
+初期Harmony UIでは最大4音程度のChordを優先する。
+内部モデルは4音固定とせず、将来9th / 11th / 13th等のExtended ChordやAltered Tensionへ拡張可能にする。
+
+理由:
+初期UIを簡潔に保ちつつ、将来のJazz、Neo Soul、House、R&B等で必要になるHarmony表現を制限しないため。
+
+検討した代替案:
+初期版から7音程度のExtended Chord編集を全面的に搭載する案、Harmony Engine自体を4音固定にする案。
+
+影響:
+初期実装はTriad / 7th系を中心にする。
+ChordEventは将来Extension / Alteration / Voicingを追加できる構造を維持する。
 ```
