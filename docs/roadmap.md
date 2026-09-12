@@ -1,164 +1,164 @@
 # Roadmap
 
-This roadmap is intentionally staged. The objective is to reach playable vertical slices early and avoid building a large untestable architecture.
+このRoadmapは、早い段階から実際に演奏・検証できるVertical Sliceを作り、大きすぎて検証不能な構造を先に作らないため、段階的に進めます。
 
-## Phase 0 — Specification
+## Phase 0 — 仕様策定
 
-Status: current phase.
+Status: 現在のPhase。
 
-Deliverables:
+成果物:
 
-- product definition
-- conceptual architecture
-- sequencer model
-- sampler requirements
-- synth requirements
-- harmony future requirements
-- technology/platform decision later
+- 製品定義
+- Conceptual Architecture
+- Sequencer Model
+- Sampler Requirements
+- Synth Requirements
+- Harmonyの将来要件
+- Technology / Platform判断は後で行う
 
-Exit criteria:
+完了条件:
 
-- enough behavior is specified that an implementation prototype can be judged against clear expectations
+- Prototypeを明確な期待値に照らして評価できる程度までBehaviorが定義されていること
 
-## Phase 1 — Minimal playable sequencer
+## Phase 1 — 最小Playable Sequencer
 
-Goal: prove timing and interaction.
+目的: TimingとInteractionを検証する。
 
-Scope:
+範囲:
 
-- application skeleton
-- transport: play / stop
+- Application Skeleton
+- Transport: Play / Stop
 - BPM
-- 16-step grid
-- one track
-- one simple sound source
-- reliable lookahead scheduling
-- visual playhead
+- 16-step Grid
+- 1 Track
+- 1つのSimple Sound Source
+- Reliable Lookahead Scheduling
+- Visual Playhead
 
-No advanced sound design or persistence required yet.
+高度なSound DesignやPersistenceはまだ不要です。
 
-## Phase 2 — Core groovebox structure
+## Phase 2 — Core Groovebox Structure
 
-Goal: prove the Track/Pattern model.
+目的: Track / Pattern Modelを検証する。
 
-Scope:
+範囲:
 
-- multiple tracks (target toward 8)
-- track mute/solo/level
-- independent track length 1–16
-- velocity
-- accent
-- note length
-- master swing
-- multiple patterns
+- Multiple Tracks（約8へ拡張）
+- Track Mute / Solo / Level
+- Independent Track Length 1–16
+- Velocity
+- Accent
+- Note Length
+- Master Swing
+- Multiple Patterns
 
-## Phase 3 — Project persistence
+## Phase 3 — Project Persistence
 
-Goal: make musical work reliably saveable.
+目的: 制作した内容を確実に保存・復元できるようにする。
 
-Scope:
+範囲:
 
-- project serialization
-- pattern/track/step persistence
-- migration/version field in project format
-- load/save workflow
+- Project Serialization
+- Pattern / Track / Step Persistence
+- Project FormatのMigration / Version Field
+- Load / Save Workflow
 
 ## Phase 4 — Sampler v0.1
 
-Goal: make imported/factory samples a first-class instrument.
+目的: Imported / Factory Sampleを主要Instrumentとして利用可能にする。
 
-Scope:
+範囲:
 
-- sample import/reference
-- audio decoding
-- waveform rendering
+- Sample Import / Reference
+- Audio Decoding
+- Waveform Rendering
 - Start / End
 - One Shot / Gate / Loop
-- coarse/fine pitch
-- reverse
-- root note
-- amp envelope
-- basic filter
+- Coarse / Fine Pitch
+- Reverse
+- Root Note
+- Amp Envelope
+- Basic Filter
 
 ## Phase 5 — Synth v0.1
 
-Goal: create melodic material without external instruments.
+目的: 外部InstrumentなしでMelodic Materialを作れるようにする。
 
-Scope:
+範囲:
 
-- two oscillators
-- basic waveforms
-- noise
-- filter
-- amp ADSR
-- filter ADSR
+- Two Oscillators
+- Basic Waveforms
+- Noise
+- Filter
+- Amp ADSR
+- Filter ADSR
 - LFO
-- mono/poly
-- glide
-- presets
-- polyphonic Step notes
+- Mono / Poly
+- Glide
+- Presets
+- Polyphonic Step Notes
 
-## Phase 6 — Advanced step sequencing
+## Phase 6 — Advanced Step Sequencing
 
-Goal: establish the project's deeper sequencer identity.
+目的: 本プロジェクト独自の深いSequencer Identityを確立する。
 
-Candidate order:
+候補順序:
 
-1. micro timing
-2. probability
-3. parameter locks
-4. repeat / ratchet
-5. conditional triggers
-6. track swing override
-7. independent track rate
+1. Micro Timing
+2. Probability
+3. Parameter Locks
+4. Repeat / Ratchet
+5. Conditional Triggers
+6. Track Swing Override
+7. Independent Track Rate
 
-The exact ordering should be revisited after the basic groovebox is playable.
+Basic GrooveboxがPlayableになった段階で順序を再評価します。
 
-## Phase 7 — Advanced sampling
+## Phase 7 — Advanced Sampling
 
-Candidates:
+候補:
 
-- sample lock / per-step override
-- slicing
-- auto slice
-- dedicated loop markers
-- recording
-- multisample
-- time stretch
+- Sample Lock / Per-step Override
+- Slicing
+- Auto Slice
+- Dedicated Loop Markers
+- Recording
+- Multisample
+- Time Stretch
 
-## Phase 8 — Harmony tools
+## Phase 8 — Harmony Tools
 
-Candidates:
+候補:
 
-- project key/scale
-- chord-name input
-- chord-to-notes generation
-- inversions
-- voicings
-- diatonic chord chooser
-- voice-leading assistance
-- arpeggiator
+- Project Key / Scale
+- Chord-name Input
+- Chord-to-notes Generation
+- Inversions
+- Voicings
+- Diatonic Chord Chooser
+- Voice-leading Assistance
+- Arpeggiator
 
-## Phase 9 — External integration / arrangement
+## Phase 9 — External Integration / Arrangement
 
-Candidates:
+候補:
 
-- MIDI input/output
-- pattern chaining
-- song mode
-- export/render
-- expanded effects
+- MIDI Input / Output
+- Pattern Chaining
+- Song Mode
+- Export / Render
+- Expanded Effects
 
-## Technology decision checkpoint
+## Technology Decision Checkpoint
 
-Before Phase 1 implementation, choose the first concrete stack based on:
+Phase 1の実装前に、以下を基準として最初の具体的Stackを選択します。
 
-- Android/iOS ambitions
-- desktop requirements
-- audio latency
-- DSP extensibility
-- waveform rendering
-- file import/persistence
-- ease of development and debugging
+- Android / iOSへの展開意向
+- Desktop要件
+- Audio Latency
+- DSP Extensibility
+- Waveform Rendering
+- File Import / Persistence
+- Development / Debuggingのしやすさ
 
-The architecture should permit replacing or augmenting the audio backend later if necessary.
+必要であれば後からAudio Backendを置き換え・拡張できるArchitectureを維持します。
