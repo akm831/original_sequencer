@@ -13,9 +13,10 @@
 1. `docs/product.md`
 2. `docs/architecture.md`
 3. `docs/sequencer.md`
-4. 対象Engineの仕様（`docs/sampler.md`、`docs/synth.md`、`docs/harmony.md`）
-5. `docs/decisions.md`
-6. `docs/roadmap.md`
+4. `docs/pattern.md`
+5. 対象Engineの仕様（`docs/sampler.md`、`docs/synth.md`、`docs/harmony.md`）
+6. `docs/decisions.md`
+7. `docs/roadmap.md`
 
 コードと仕様が矛盾する場合、黙ってどちらかを選ばないでください。原則として文書化された仕様を優先し、設計を意図的に変更する場合は仕様書も更新してください。
 
