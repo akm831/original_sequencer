@@ -1,12 +1,12 @@
-# Architecture
+# アーキテクチャ
 
-## Purpose
+## 目的
 
-This document defines conceptual boundaries before a concrete framework or programming language is selected.
+具体的なFrameworkやProgramming Languageを選ぶ前に、責務の境界を定義します。
 
-The central rule is: **musical behavior must not be tightly coupled to a specific UI toolkit or audio backend.**
+中心原則は、**音楽的な動作を特定のUI ToolkitやAudio Backendへ密結合させないこと**です。
 
-## Conceptual layers
+## 概念レイヤー
 
 ```text
 UI / Interaction
@@ -27,27 +27,27 @@ Mixer / FX
 Audio Output
 ```
 
-Persistence sits beside the project model and serializes project state without defining musical behavior.
+PersistenceはProject Modelの横に位置し、音楽的挙動を定義せずProject Stateを保存・復元します。
 
-## Major modules
+## 主要モジュール
 
 ### UI / Interaction
 
-Responsibilities:
+担当:
 
-- step-grid interaction
-- track selection
-- sampler waveform editor
-- synth controls
-- pattern management
-- transport controls
-- touch gestures
+- Step Grid操作
+- Track選択
+- Sampler Waveform Editor
+- Synth Controls
+- Pattern管理
+- Transport Controls
+- Touch Gestures
 
-UI code should issue intent/commands to the model and should not contain timing-critical audio scheduling logic.
+UIはModelへIntent / Commandを渡し、Timing-criticalなAudio Scheduling Logicを持たないようにします。
 
-### Project model
+### Project Model
 
-Holds persistent musical state:
+永続化対象となる音楽状態を保持します。
 
 ```text
 Project
@@ -61,7 +61,7 @@ Project
 
 ### Pattern
 
-Contains a group of tracks that play together.
+同時に再生される複数Trackを保持します。
 
 ```text
 Pattern
@@ -72,7 +72,7 @@ Pattern
 
 ### Track
 
-A Track is the main musical lane and selects an engine.
+Trackは主要な音楽レーンであり、使用するEngineを選択します。
 
 ```text
 Track
@@ -86,25 +86,23 @@ Track
 └─ steps[]
 ```
 
-Do not create unrelated "drum track" and "melody track" sequencing systems. Sampler and Synth tracks should use the same sequencing core where possible.
+「Drum Track」と「Melody Track」で別々のSequencer Coreを作らず、SamplerとSynthは可能な限り同じSequencing Coreを共有します。
 
 ### Transport / Clock
 
-Responsibilities:
+担当:
 
-- play / stop
+- Play / Stop
 - BPM
-- musical position
-- step/bar boundaries
-- conversion from musical time to scheduled audio time
-- lookahead scheduling strategy
+- Musical Position
+- Step / Bar Boundary
+- Musical TimeからScheduled Audio Timeへの変換
+- Lookahead Scheduling
 
-Current timing design target:
+現在のTiming設計目標:
 
 - 960 PPQN
-- timing stored in musical units/ticks rather than only milliseconds
-
-Scheduling concept:
+- Timingはミリ秒だけでなくMusical Units / Ticksで保持
 
 ```text
 scheduled musical time
@@ -113,67 +111,67 @@ scheduled musical time
 + micro timing offset
 ```
 
-The final conversion to seconds/audio frames belongs close to the audio backend.
+最終的なSeconds / Audio Framesへの変換はAudio Backendに近い層で行います。
 
-### Engine abstraction
+### Engine Abstraction
 
-A Track chooses a sound engine. Initial engine types:
+TrackがSound Engineを選択します。初期Engine:
 
 - Sampler
 - Synth
 
-Future engine types may include:
+将来候補:
 
-- FM synth
-- Wavetable synth
+- FM Synth
+- Wavetable Synth
 - External MIDI
 
-The sequencer should describe musical events and parameter overrides without needing to know how an engine internally produces sound.
+SequencerはMusical EventとParameter Overrideを記述し、Engine内部の発音方式には依存しません。
 
 ### Mixer / FX
 
-Per-track concepts:
+Trackごとの基本概念:
 
-- level
-- pan
-- mute
-- solo
+- Level
+- Pan
+- Mute
+- Solo
 
-Future:
+将来:
 
-- sends
-- insert effects
-- master effects
+- Sends
+- Insert Effects
+- Master Effects
 
-## Event flow
+## Event Flow
 
-Example: synth note
+Synth Noteの例:
 
 ```text
-Step becomes due
-→ Sequencer evaluates probability/condition (when implemented)
-→ Step note event is generated
-→ Parameter locks are applied for this event
-→ Synth engine receives note + parameters
+Step到達
+→ Probability / Condition評価（実装後）
+→ Note Event生成
+→ Parameter Lock適用
+→ SynthへNote + Parameters送信
 → Mixer
 → Output
 ```
 
-Example: sampler trigger
+Sampler Triggerの例:
 
 ```text
-Step becomes due
-→ Sequencer evaluates step
-→ Sampler receives note/trigger
-→ Sample selection/start/end/pitch parameters are resolved
-→ Voice is played
+Step到達
+→ SequencerがStep評価
+→ SamplerへNote / Trigger送信
+→ Sample選択・Start/End・Pitch解決
+→ Voice再生
 → Mixer
 → Output
 ```
 
-## Parameter model
+## Parameter Model
 
-Future Parameter Lock support requires stable parameter identifiers. Conceptually:
+将来のParameter Lockのため、安定したParameter IDを使用します。
 
 ```text
 sampler.start
@@ -184,16 +182,16 @@ synth.filter.cutoff
 synth.lfo.amount
 ```
 
-A Step should store only overridden parameters. Track/engine state provides defaults.
+StepにはOverrideされたParameterだけを保存し、通常値はTrack / Engine Stateが保持します。
 
-## Non-destructive audio-file policy
+## 非破壊Audio File方針
 
-Sample editing metadata (start/end, loop markers, reverse mode, root note, etc.) should normally be stored in the project without modifying the source audio file.
+Start / End、Loop Marker、Reverse、Root Note等は通常Project Metadataとして保存し、元のAudio Fileを変更しません。
 
-Destructive/export operations such as Crop or Normalize should be explicit separate actions if introduced later.
+Crop / Normalizeなどの破壊的処理を将来追加する場合は、明示的な別操作にします。
 
-## Platform strategy
+## Platform戦略
 
-No platform is fixed yet. The architecture should permit a shared application/sequencer layer with an audio backend that can become native if latency or DSP requirements demand it.
+現時点ではPlatformを固定しません。Application / Sequencer Layerを共有しつつ、LatencyやDSP要件に応じてAudio BackendだけNative化できる構造を維持します。
 
-Potential technology choices should be evaluated only after the core musical model is sufficiently specified.
+具体的な技術選定はCore Musical Modelが十分固まってから行います。
