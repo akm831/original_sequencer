@@ -20,6 +20,18 @@ TrackがEngineを選択します。初期EngineはSamplerとSynthです。Drum�
 
 Stepは拡張可能とし、Chord用の複数Noteを含むNote Eventを保持できるようにします。
 
+### Note / Chord入力方式
+
+Synth TrackおよびPitched Sampler TrackのStep Editorでは、同じ`notes[]`を編集する3つのInput Modeを採用します。
+
+- NOTE: 単音を直接指定
+- CHORD: Harmony EngineからChordを生成
+- KEYBOARD: 任意のNote Combinationを直接入力
+
+これらは別々のSequencer Event Typeにはしません。Audio Engineは最終的な`notes[]`を受け取ります。
+
+CHORD Modeで生成したNotesをKEYBOARD Modeで後から調整できる設計を目指します。
+
 ### VelocityとAccent
 
 VelocityとAccentは別々の音楽的概念として保持します。
@@ -101,6 +113,14 @@ Triadおよび7th系Chordを中心にしつつ、内部データモデルは4音
 
 将来的には9th、11th、13th、add系、Altered Tension等のExtended Chordを扱えるようにし、Harmony Engineは任意数のGenerated Notesを扱える設計とします。
 
+### Harmony UI
+
+CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、生成NoteをPreview表示します。
+
+可能であればChord選択時にAuditionできるようにし、理論知識だけでなく耳でChordを選べる設計とします。
+
+高度なTension、Alteration、VoicingはDetail Viewへ分離します。
+
 ### Factory Content
 
 同梱Sample / Presetは再配布可能なLicenseが明確なものだけを使用します。
@@ -116,6 +136,7 @@ Triadおよび7th系Chordを中心にしつつ、内部データモデルは4音
 - v0.1はMaster Swing、Track Swingは後で追加
 - Independent Track Lengthを確認した後にTrack Rateを追加
 - Synth Polyphonyは1 Synth Trackあたり最大8 Voiceを暫定目標とする
+- KEYBOARD Modeは1〜2 Octave程度の横スクロール可能なTouch Keyboardを想定
 
 ## 未決事項
 
@@ -162,6 +183,7 @@ Triadおよび7th系Chordを中心にしつつ、内部データモデルは4音
 - Parameter LockのLifetime / Interpolation
 - Polyphonic NoteへのParameter Lock
 - Sample LockとSampler Parameter Lockの関係
+- CHORDで生成したNotesをKEYBOARDで編集した場合のHarmony Metadata保持Rule
 
 ### Pattern Behavior
 
@@ -255,4 +277,20 @@ Sub Oscillator、FM、Wavetable、複数LFO、Modulation Matrixを初期版か�
 影響:
 初期実装はTriad / 7th系を中心にする。
 ChordEventは将来Extension / Alteration / Voicingを追加できる構造を維持する。
+
+2026-09-12 — StepのNote / Chord入力方式
+決定:
+Step EditorにNOTE / CHORD / KEYBOARDの3 Input Modeを設け、すべて同じ`notes[]`を編集する。
+CHORD ModeはHarmony EngineからNotesを生成し、KEYBOARD Modeでは任意のNotesを直接編集する。
+
+理由:
+単音入力、簡単なChord Name入力、自由なVoicing編集を1つのSequencer Modelで共存させるため。
+将来Synth、Pitched Sampler、MIDIで同じNote Eventを利用できるため。
+
+検討した代替案:
+Chord専用Step Typeを作る案、Synth内部でChordを発音する案、常にPiano Rollを使用する案。
+
+影響:
+Audio EngineはChord Nameではなく最終的な`notes[]`を受け取る。
+Harmony Metadataは入力・再編集支援のための補助情報として扱う。
 ```
