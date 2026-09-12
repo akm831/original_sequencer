@@ -1,164 +1,164 @@
-# Design Decisions and Open Questions
+# 設計上の決定事項と未決事項
 
-This file records decisions that should remain stable unless deliberately revisited.
+このファイルには、明示的に見直さない限り維持する設計判断を記録します。
 
-## Confirmed decisions
+## 確定済みの判断
 
-### Product identity
+### 製品の位置づけ
 
-The project is a groovebox-style music production application, not only a drum-machine clone.
+本プロジェクトは単なるDrum Machine Cloneではなく、Groovebox型の音楽制作アプリとします。
 
-### Primary interaction
+### 基本操作
 
-Use a simple 16-step surface as the main sequencing interaction. Deeper controls belong in detail views.
+Main Sequencing Interactionは、分かりやすい16-step Surfaceを使用します。高度なControlはDetail Viewへ分離します。
 
-### Track model
+### Track Model
 
-Tracks select an engine. Initial engine types are Sampler and Synth. Do not build separate unrelated drum and melodic sequencer cores.
+TrackがEngineを選択します。初期EngineはSamplerとSynthです。Drum用とMelody用で無関係なSequencer Coreを別々に作りません。
 
-### Step model
+### Step Model
 
-A Step must be extensible and capable of carrying note events, including multiple notes for chords.
+Stepは拡張可能とし、Chord用の複数Noteを含むNote Eventを保持できるようにします。
 
-### Velocity vs Accent
+### VelocityとAccent
 
-Velocity and Accent are distinct musical concepts and should be represented separately.
+VelocityとAccentは別々の音楽的概念として保持します。
 
-### Musical timing
+### Musical Timing
 
-Store timing in musical units rather than only milliseconds. Current design target: 960 PPQN.
+TimingはMillisecondsだけでなくMusical Unitsで保持します。現在の設計目標は960 PPQNです。
 
-### Swing vs Micro Timing
+### SwingとMicro Timing
 
-Swing is systematic groove timing; Micro Timing is a per-step offset. Keep them separate.
+Swingは規則的なGroove Timing、Micro TimingはStep単位のOffsetとして分離します。
 
-### Track length
+### Track Length
 
-Independent per-track length is a core capability. Initial target range: 1–16 steps.
+Trackごとの独立LengthをCore Capabilityとします。初期範囲は1–16 Stepsです。
 
-### Sampler editing
+### Sampler編集
 
-Sample Start/End, reverse, root note, and similar operations are non-destructive by default.
+Sample Start / End、Reverse、Root Note等は原則として非破壊編集にします。
 
-### Synth direction
+### Synthの方向性
 
-The first built-in synth should be a compact subtractive synthesizer rather than integrating a very large third-party instrument.
+最初のBuilt-in Synthは巨大なThird-party Instrumentを組み込むのではなく、コンパクトなSubtractive Synthesizerとします。
 
-### Chord generation
+### Chord生成
 
-Future chord/harmony features belong above the audio engine and generate ordinary notes. They should not be implemented merely as special synth presets.
+将来のChord / Harmony機能はAudio Engineより上位に置き、通常のNoteを生成します。特殊なSynth PresetだけでChord機能を実現しません。
 
-### Factory content
+### Factory Content
 
-Bundled samples/presets must have clear redistribution-safe licensing.
+同梱Sample / Presetは再配布可能なLicenseが明確なものだけを使用します。
 
-## Tentative decisions
+## 暫定的な判断
 
-These are current preferences but may be revisited after prototyping.
+以下は現時点での方針ですが、Prototype後に見直す可能性があります。
 
-- Approximately 8 tracks for the initial groovebox target
-- Approximately 8 patterns initially
-- Around 70–100 factory samples
-- Around 30 synth presets
-- Master Swing in v0.1; per-track swing later
-- Track rate changes after independent track length is proven
+- 初期Groovebox目標は約8 Tracks
+- 初期約8 Patterns
+- Factory Samplesは約70–100
+- Synth Presetsは約30
+- v0.1はMaster Swing、Track Swingは後で追加
+- Independent Track Lengthを確認した後にTrack Rateを追加
 
-## Open questions
+## 未決事項
 
-### Platform / framework
+### Platform / Framework
 
-Not yet chosen.
+未決定です。
 
-Candidates previously considered include:
+これまでの候補:
 
-- Flutter plus native audio integration if needed
-- Web technologies plus a native/mobile wrapper
-- Native/JUCE/C++ audio layers for higher-performance DSP
+- 必要に応じNative Audio Integrationを組み合わせたFlutter
+- Web Technology + Native / Mobile Wrapper
+- 高性能DSP向けNative / JUCE / C++ Audio Layer
 
-The decision should be made based on product requirements, not convenience alone.
+単なる実装の手軽さだけでなく、製品要件から決定します。
 
-### Audio engine
+### Audio Engine
 
-Open questions:
+未決事項:
 
-- fully shared engine vs platform-native layer
-- sample-accurate scheduling strategy
-- maximum polyphony
-- voice stealing
-- resampling/interpolation quality
-- filter implementation
-- effects architecture
+- Fully Shared EngineかPlatform-native Layerか
+- Sample-accurate Scheduling Strategy
+- Maximum Polyphony
+- Voice Stealing
+- Resampling / Interpolation Quality
+- Filter Implementation
+- Effects Architecture
 
-### Project format
+### Project Format
 
-Need to decide:
+要決定:
 
-- serialization format
-- explicit schema versioning
-- asset references and portable project bundles
-- missing-sample behavior
-- migrations between versions
+- Serialization Format
+- Explicit Schema Versioning
+- Asset Reference / Portable Project Bundle
+- Missing Sample時のBehavior
+- Version間Migration
 
-### Step semantics
+### Step Semantics
 
-Still to define in detail:
+詳細未定:
 
-- probability interaction with conditional triggers
-- repeat/ratchet order of evaluation
-- parameter-lock lifetime and interpolation behavior
-- parameter locks on polyphonic notes
-- sample lock interaction with sampler parameter locks
+- ProbabilityとConditional Triggerの評価関係
+- Repeat / Ratchetの評価順
+- Parameter LockのLifetime / Interpolation
+- Polyphonic NoteへのParameter Lock
+- Sample LockとSampler Parameter Lockの関係
 
-### Pattern behavior
+### Pattern Behavior
 
-Still to define:
+詳細未定:
 
-- pattern switching quantization
-- per-pattern vs global BPM
-- pattern copy/duplicate workflow
-- maximum pattern length beyond 16
+- Pattern切替のQuantization
+- BPMをPatternごとかGlobalにするか
+- Pattern Copy / Duplicate Workflow
+- 16を超えるMaximum Pattern Length
 
 ### Sampler
 
-Still to define:
+詳細未定:
 
-- exact loop behavior
-- Start/End units and precision
-- envelope behavior for One Shot mode
-- slice representation
-- sample caching strategy
-- supported file formats by platform
+- Exact Loop Behavior
+- Start / EndのUnitとPrecision
+- One Shot時のEnvelope Behavior
+- Slice Representation
+- Sample Caching Strategy
+- PlatformごとのSupported File Formats
 
 ### Synth
 
-Still to define:
+詳細未定:
 
-- initial polyphony limit
-- oscillator anti-aliasing strategy
-- exact filter types
-- LFO sync/free modes
-- preset format
+- Initial Polyphony Limit
+- Oscillator Anti-aliasing Strategy
+- Exact Filter Types
+- LFO Sync / Free Modes
+- Preset Format
 
 ### Harmony
 
-Still to define:
+詳細未定:
 
-- persisted chord metadata vs generated notes only
-- first chord vocabulary
-- scale model
-- chord suggestion behavior
-- voicing constraints
+- Chord MetadataとGenerated Notesのどちらを永続化するか
+- Initial Chord Vocabulary
+- Scale Model
+- Chord Suggestion Behavior
+- Voicing Constraints
 
-## Decision log format
+## Decision Log形式
 
-When a major technical or product decision is made, add an entry:
+重要な技術・製品判断を行った場合、以下の形式で追記します。
 
 ```text
-YYYY-MM-DD — Decision title
-Decision:
-Reason:
-Alternatives considered:
-Consequences:
+YYYY-MM-DD — 判断タイトル
+決定:
+理由:
+検討した代替案:
+影響:
 ```
 
-This keeps later Codex sessions from re-deciding settled architecture without context.
+これにより、後のCodex Sessionで背景を失ったまま確定済みArchitectureを再判断することを防ぎます。
