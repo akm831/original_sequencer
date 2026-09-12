@@ -76,6 +76,38 @@ Swingは規則的なGroove Timing、Micro TimingはStep単位のOffsetとして�
 
 Trackごとの独立LengthをCore Capabilityとします。初期範囲は1–16 Stepsです。
 
+### Pattern切替
+
+演奏中に別Patternを選択した場合、標準では即時切替せず、次のProject小節境界で切り替えます。
+
+v0.1では4/4・16分Stepを基準として、16 Global Steps = 1小節をPattern Launch Quantizationとします。
+
+各Trackが15 Stepsや7 StepsでLoopしていても、Pattern切替基準はTrack Loop終端ではなくProject Transportの小節境界です。
+
+### Pattern切替時のPhase
+
+新しいPatternへ切り替えるときは、新Pattern内の全TrackをStep 1から開始します。旧PatternのTrack Phaseは引き継ぎません。
+
+### Pattern BPM
+
+BPMはPatternごとではなくProject Globalとします。Tempo Changeが将来必要になった場合はArrangement Layerで扱う方針を優先します。
+
+### Pattern Copy
+
+Pattern DuplicateはStep Dataだけでなく、Track Length、Engine Type、Engine State、Mixer Stateを含むPattern全体を複製します。
+
+### Pattern境界の長音
+
+同じPatternをLoopしている場合、Note LengthはPattern境界をまたいで継続可能とします。
+
+別Patternへ切り替える境界では旧Pattern由来のGate保持中NoteへNote Offを送り、Synth ReleaseやOne Shot Sample、将来のEffect Tailなどの自然なAudio Tailは原則として許容します。
+
+### Pattern拡張
+
+v0.1のMain Surfaceは16 Stepsを維持します。将来32 / 64 Stepへ拡張する場合は、16 Steps単位のPage方式を基本候補とします。
+
+Pattern ChainとSong / Arrangement ModeはPattern Sequencerより上位Layerへ追加します。
+
 ### Sampler編集
 
 Sample Start / End、Reverse、Root Note等は原則として非破壊編集にします。
@@ -165,6 +197,7 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Independent Track Lengthを確認した後にTrack Rateを追加
 - Synth Polyphonyは1 Synth Trackあたり最大8 Voiceを暫定目標とする
 - KEYBOARD Modeは1〜2 Octave程度の横スクロール可能なTouch Keyboardを想定
+- Pattern UIはCurrent / Queued / Idleを区別する
 
 ## 未決事項
 
@@ -212,7 +245,6 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Polyphonic NoteへのParameter Lock
 - Sample LockとSampler Parameter Lockの関係
 - CHORDで生成したNotesをKEYBOARDで編集した場合のHarmony Metadata保持Rule
-- Pattern境界をまたぐ長いNote / Tieの扱い
 - 新しいTriggerが既存の長いNoteと重なった場合のVoice Rule
 - Polyphonic Chordに対する将来のLegato Semantics
 
@@ -220,11 +252,12 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 
 詳細未定:
 
-- Pattern切替のQuantization
-- BPMをPatternごとかGlobalにするか
-- Pattern Copy / Duplicate Workflow
-- 16を超えるMaximum Pattern Length
-- Pattern Loop時の長音のCarry / Retrigger Rule
+- 32 / 64 Step化した際のTrack LengthとPageの関係
+- Pattern Chainの編集UI
+- Song / Arrangement Modeの具体的Data Model
+- Pattern切替を1小節以外にも設定可能にするか
+- Long NoteとLoop先の同Pitch Triggerが重なる場合のVoice Rule
+- One Shot / FX TailをPattern切替時にどこまでCarryするかの詳細
 
 ### Sampler
 
@@ -344,5 +377,26 @@ StepごとにTie Eventを保存する案、初期版から複数Resolutionを自
 影響:
 960 PPQNでは16分音符1 Step = 240 ticksとなる。
 UIはTickではなくStep比率やStep数でLengthを表示する。
-Resolution変更、Pattern境界のTie、Polyphonic Legatoは将来詳細化する。
+Resolution変更、Polyphonic Legatoは将来詳細化する。
+
+2026-09-13 — Pattern構造と切替
+決定:
+v0.1のPattern切替は次のProject小節境界でQuantizeする。
+各Trackの独立Lengthとは無関係に、Project Transportの16 Global Stepsを1小節のLaunch境界とする。
+新Patternへ切り替える際は全TrackをStep 1から開始する。
+BPMはProject Globalとする。
+Pattern DuplicateはSound / Mixer Stateを含むPattern全体を複製する。
+
+理由:
+Polymetric Trackを許容しながらも、Pattern切替のタイミングを演奏者が予測しやすくするため。
+PatternごとのTempoやTrack Phase継承を初期版から入れると、Live操作とSchedulingが複雑になるため。
+
+検討した代替案:
+Tap直後に即時Pattern切替する案、各TrackのLoop終端を待つ案、PatternごとにBPMを持つ案、Track PhaseをPattern間で継承する案。
+
+影響:
+UIはCurrent / Queued / Idleを区別する。
+同一Pattern Loopでは長いNoteが境界をまたげる。
+別Pattern切替時は旧PatternのGate Noteを終了しつつ、Release / One Shot / Effect Tailは可能な限り自然に残す。
+将来32 / 64 Step化は16-Step Page方式を優先し、Pattern Chain / Song Modeは上位Layerへ追加する。
 ```
