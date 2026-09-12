@@ -1,49 +1,51 @@
 # Original Sequencer
 
-A groovebox-style music production app centered on a fast step sequencer, sampler, and synthesizer.
+高速なステップシーケンサー、サンプラー、シンセサイザーを中心とした、グルーヴボックス型の音楽制作アプリです。
 
-The project is currently in the **specification and architecture phase**. Implementation technology and target platform are intentionally not locked yet.
+現在は **仕様策定・アーキテクチャ設計段階** です。実装技術や対象プラットフォームは、現時点では意図的に固定していません。
 
-## Product direction
+## 製品の方向性
 
-The core idea combines:
+中心となる考え方は次のとおりです。
 
-- TR-style immediacy and a simple 16-step workflow
-- Elektron-style per-step depth such as parameter locks and probability
-- Flexible track length/rate inspired by modern grooveboxes
-- Built-in sampler with waveform editing
-- Built-in synthesizer for melodic and harmonic parts
-- A future harmony engine for chord generation and scale-aware assistance
-- Touch-first interaction so the design can scale to mobile devices
+- TR系の即時性と、分かりやすい16ステップの操作感
+- Elektron系のParameter LockやProbabilityのようなステップ単位の深い編集
+- 現代的なグルーヴボックスに見られるトラックごとのLength / Rate
+- 波形編集を備えた内蔵Sampler
+- メロディやコードを作れる内蔵Synth
+- 将来のコード生成・スケール支援を行うHarmony Engine
+- モバイルにも展開しやすいTouch-firstな操作設計
 
-## Initial product target
+## 初期製品目標
 
-The first useful version should behave as a compact groovebox rather than only a drum machine.
+最初の実用版は、単なるドラムマシンではなく、小型グルーヴボックスとして成立させます。
 
-- Around 8 tracks
-- Per-track engine selection: Sampler or Synth
-- 16-step sequencing
-- Independent track length
-- Velocity, accent, note length, swing
-- Waveform-based sample editing
-- Basic subtractive synthesis
-- Multiple patterns
-- Factory samples and synth presets
+- 約8 Tracks
+- TrackごとにSampler / Synthを選択
+- 16-step Sequencer
+- Trackごとの独立Length
+- Velocity / Accent / Note Length / Swing
+- 波形を使ったSample編集
+- 基本的な減算方式Synth
+- 複数Pattern
+- Factory Samples / Synth Presets
 
-Advanced functions such as probability, micro timing, parameter locks, conditional triggers, slicing, song mode, and MIDI are designed as extensions rather than assumptions of the first implementation milestone.
+Probability、Micro Timing、Parameter Lock、Conditional Trigger、Slice、Song Mode、MIDIなどの高度な機能は、最初の実装段階で必須とはせず、将来拡張できる構造として設計します。
 
-## Documentation
+## ドキュメント
 
-- [`AGENTS.md`](AGENTS.md) — instructions for Codex and coding agents
-- [`docs/product.md`](docs/product.md) — product vision and scope
-- [`docs/architecture.md`](docs/architecture.md) — conceptual architecture
-- [`docs/sequencer.md`](docs/sequencer.md) — sequencer data model and behavior
-- [`docs/sampler.md`](docs/sampler.md) — sampler requirements
-- [`docs/synth.md`](docs/synth.md) — synthesizer requirements
-- [`docs/harmony.md`](docs/harmony.md) — future chord / harmony engine
-- [`docs/roadmap.md`](docs/roadmap.md) — staged implementation plan
-- [`docs/decisions.md`](docs/decisions.md) — design decisions and open questions
+- [`AGENTS.md`](AGENTS.md) — Codex / coding agent向け作業指針
+- [`docs/product.md`](docs/product.md) — 製品ビジョンとスコープ
+- [`docs/architecture.md`](docs/architecture.md) — 概念アーキテクチャ
+- [`docs/sequencer.md`](docs/sequencer.md) — Sequencerのデータモデルと動作
+- [`docs/sampler.md`](docs/sampler.md) — Sampler仕様
+- [`docs/synth.md`](docs/synth.md) — Synthesizer仕様
+- [`docs/harmony.md`](docs/harmony.md) — 将来のChord / Harmony Engine仕様
+- [`docs/roadmap.md`](docs/roadmap.md) — 段階的な実装計画
+- [`docs/decisions.md`](docs/decisions.md) — 設計上の決定事項と未決事項
 
-## Development policy
+## 開発方針
 
-Do not start by building a large application all at once. Implement vertical slices that can be played and tested early. Product behavior in `docs/` is the source of truth; when implementation decisions conflict with it, update the relevant specification deliberately rather than silently changing behavior.
+最初から大規模なアプリ全体を一度に作らず、早い段階から実際に鳴らして検証できる小さな縦方向の実装（vertical slice）を積み重ねます。
+
+`docs/` 以下の仕様を製品動作の正本（source of truth）とします。実装上の都合で仕様と異なる動作へ変更する場合は、暗黙に変更せず、関連する仕様書も意図的に更新します。
