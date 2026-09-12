@@ -1,6 +1,6 @@
-# Sequencer Specification
+# Sequencer仕様
 
-## Core hierarchy
+## 基本階層
 
 ```text
 Project
@@ -12,11 +12,11 @@ Project
                └─ Step
 ```
 
-The sequencer is shared by sampler and synth tracks.
+SequencerはSampler TrackとSynth Trackで共通利用します。
 
-## Project timing
+## Project Timing
 
-Initial target:
+初期目標:
 
 ```text
 bpm
@@ -24,16 +24,16 @@ ppqn = 960
 masterSwing
 ```
 
-Swing should be represented musically rather than as a fixed millisecond offset.
+Swingは固定ミリ秒ではなく、音楽的な比率として表現します。
 
-Suggested UI convention:
+推奨UI表現:
 
-- 50% = straight
-- higher values delay the appropriate subdivisions
+- 50% = Straight
+- それより大きい値で対象Subdivisionを遅らせる
 
 ## Track
 
-Conceptual Track data:
+概念データ:
 
 ```text
 Track
@@ -51,13 +51,13 @@ Track
 └─ steps[]
 ```
 
-### Track length
+### Track Length
 
-Initial implementation target:
+初期実装目標:
 
-- 1–16 steps independently per track
+- 各Track独立で1–16 Steps
 
-Example:
+例:
 
 ```text
 Kick  16
@@ -66,11 +66,11 @@ Hat   15
 Perc   7
 ```
 
-This intentionally enables evolving polymetric patterns.
+これにより意図的にPolymetricで変化するPatternを作れるようにします。
 
-### Track rate
+### Track Rate
 
-Future target options may include:
+将来候補:
 
 - 1/4x
 - 1/2x
@@ -78,13 +78,11 @@ Future target options may include:
 - 2x
 - 4x
 
-Do not require this in the first playable milestone.
+最初のPlayable Milestoneでは必須としません。
 
 ## Step
 
-A Step is not just an ON/OFF boolean. It is an extensible musical event container.
-
-Conceptual data:
+Stepは単なるON/OFF Booleanではなく、拡張可能なMusical Event Containerとして扱います。
 
 ```text
 Step
@@ -101,131 +99,123 @@ Step
 └─ parameterLocks
 ```
 
-Not every field must be exposed in v0.1.
+v0.1で全FieldをUIに出す必要はありません。
 
 ## Notes
 
-Use a collection rather than only a single note so chords are representable.
-
-Examples:
+Chordを表現できるよう、単一NoteではなくCollectionを使用します。
 
 ```text
-Bass note:
+Bass Note:
 notes = [C2]
 
 Chord:
 notes = [C3, E3, G3]
 ```
 
-This representation should work regardless of whether notes drive the built-in Synth, a pitched Sampler, or a future MIDI engine.
+この表現はBuilt-in Synth、Pitched Sampler、将来のMIDI Engineのいずれでも利用できるようにします。
 
-## Velocity and Accent
+## VelocityとAccent
 
-Velocity and Accent are separate concepts.
+VelocityとAccentは別概念です。
 
 ### Velocity
 
-Internal target range:
+内部目標範囲:
 
 - 1–127
 
-This is convenient for future MIDI interoperability.
-
-Velocity represents event strength.
+将来のMIDI互換性も考慮します。VelocityはEventの強さを表します。
 
 ### Accent
 
-Accent is a separate emphasis flag / behavior. It must not simply be encoded as "high velocity".
+Accentは独立した強調Flag / Behaviorとして扱い、単純に「高いVelocity」として表現しません。
 
-Future Accent Amount may influence several parameters, e.g.:
+将来のAccent Amountは以下へ影響可能にします。
 
-- amplitude
-- filter
-- attack
-- decay
-- drive / saturation
+- Amplitude
+- Filter
+- Attack
+- Decay
+- Drive / Saturation
 
-## Note length
+## Note Length
 
-Length determines how long a note/gate remains active where the engine respects gates.
+EngineがGateを解釈する場合、LengthはNote / Gateの継続時間を表します。
 
-Examples:
+対象例:
 
-- Synth notes
-- Sampler Gate playback
-- Sampler Loop playback
+- Synth Notes
+- Sampler Gate Playback
+- Sampler Loop Playback
 
-One Shot sampler playback may intentionally ignore note length for stopping behavior.
+One Shot Samplerでは停止条件としてNote Lengthを無視して構いません。
 
-## Swing and Micro Timing
+## SwingとMicro Timing
 
 ### Swing
 
-Initial version:
+初期版:
 
-- Project-level master swing
+- Project-level Master Swing
 
-Future:
+将来:
 
-- Track-level override/inherit
+- Track-level Override / Inherit
 
-### Micro timing
+### Micro Timing
 
-Store micro timing in musical ticks, not milliseconds.
-
-Example:
+Micro TimingはMillisecondsではなくMusical Ticksで保存します。
 
 ```text
 microTimingTicks = -24
 ```
 
-Scheduling concept:
+Scheduling:
 
 ```text
 scheduledTime = gridTime + swingOffset + microTimingOffset
 ```
 
-UI can present this simply as EARLY ↔ LATE.
+UIでは EARLY ↔ LATE のように簡潔に表示できます。
 
 ## Probability
 
-Future per-step probability:
+将来のStepごとのProbability:
 
 ```text
 0–100%
 ```
 
-Probability determines whether an otherwise eligible trigger occurs on a playback pass.
+再生Passごとに、条件を満たしたTriggerを実際に鳴らすか決定します。
 
-Exact interaction with conditional triggering is still to be specified.
+Conditional Triggerとの評価順は今後決定します。
 
 ## Conditional Trigger
 
-Future functionality. Examples may include:
+将来機能。候補:
 
-- first pass only
-- every Nth pass
-- fill mode
-- previous-step/result dependency
+- First Pass Only
+- Every Nth Pass
+- Fill Mode
+- Previous Step / Result Dependency
 
-The exact condition language should remain simple enough for touch UI.
+Touch UIで扱える程度にCondition Languageを簡潔に保ちます。
 
 ## Repeat / Ratchet
 
-Future per-step repeated triggers inside a step interval.
+1 Step内で複数Triggerを発生させる将来機能です。
 
-Important future considerations:
+検討事項:
 
-- repeat count
-- repeat spacing
-- velocity shaping
-- probability interaction
+- Repeat Count
+- Repeat Spacing
+- Velocity Shaping
+- Probabilityとの関係
 
-## Parameter Locks
+## Parameter Lock
 
-A Step may override a subset of current engine parameters for that event.
-
-Conceptually:
+Stepは、そのEventについてEngine Parameterの一部をOverrideできます。
 
 ```text
 parameterLocks = {
@@ -235,45 +225,45 @@ parameterLocks = {
 }
 ```
 
-Only overrides should be stored. The engine/track retains the normal parameter value.
+Overrideだけを保存し、通常値はEngine / Track側に保持します。
 
-Parameter IDs need to remain stable across project saves and software updates.
+Parameter IDはProject SaveやSoftware Updateをまたいでも安定させます。
 
 ## Sample Lock / Sample Override
 
-Future sampler behavior:
+将来のSampler動作:
 
 ```text
 Track default sample = snare_01.wav
 Step 9 sampleOverride = clap_01.wav
 ```
 
-This allows multiple samples on one sequencer track without duplicating the track.
+1 Track内で複数Sampleを使えるようにします。
 
-## Main interaction model
+## 基本操作
 
-Primary grid:
+Main Grid:
 
-- tap step: toggle active/inactive
-- long press step: open detailed step editor
-- tap track header: open track/engine editor
+- StepをTap: Active / Inactive切替
+- StepをLong Press: 詳細Step Editor
+- Track HeaderをTap: Track / Engine Editor
 
-Potential future gesture:
+将来Gesture候補:
 
-- vertical swipe on a step to adjust velocity
+- Step上でVertical SwipeしてVelocity調整
 
-The grid should stay visually simple even as Step data becomes richer.
+Step Dataが高度になってもGrid自体は視覚的に簡潔に保ちます。
 
-## v0.1 exposed sequencing controls
+## v0.1で表に出すSequencing Control
 
-Recommended first exposure:
+推奨:
 
 - Step ON/OFF
-- notes
-- velocity
-- length
-- accent
-- master swing
-- independent track length
+- Notes
+- Velocity
+- Length
+- Accent
+- Master Swing
+- Independent Track Length
 
-The internal model may reserve fields for later features without implementing their behavior yet.
+内部Modelには将来Fieldを保持できる余地を残しますが、未実装のBehaviorを無理に実装しません。
