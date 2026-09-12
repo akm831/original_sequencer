@@ -31,6 +31,33 @@ Swingは固定ミリ秒ではなく、音楽的な比率として表現します
 - 50% = Straight
 - それより大きい値で対象Subdivisionを遅らせる
 
+## Step Resolution
+
+v0.1ではMain GridのResolutionを固定します。
+
+- 1 Step = 16分音符
+- 4/4拍子では16 Steps = 1小節
+
+960 PPQNの場合:
+
+```text
+Quarter Note = 960 ticks
+8th Note     = 480 ticks
+16th Note    = 240 ticks
+32nd Note    = 120 ticks
+```
+
+初期版ではResolutionをUser設定にしません。まず16-Step Grooveboxとしての操作性を優先します。
+
+将来はTrackまたはPattern単位で以下のResolutionを検討できます。
+
+- 1/8
+- 1/16
+- 1/32
+- Triplet系
+
+ただしTrack Rateと役割が重なるため、両者のUIと内部意味は実装前に再検証します。
+
 ## Track
 
 概念データ:
@@ -89,8 +116,9 @@ Step
 ├─ enabled
 ├─ notes[]
 ├─ velocity
-├─ length
+├─ lengthTicks
 ├─ accent
+├─ legato
 ├─ microTimingTicks
 ├─ probability
 ├─ condition
@@ -100,6 +128,8 @@ Step
 ```
 
 v0.1で全FieldをUIに出す必要はありません。
+
+`lengthTicks`は固定Step数ではなくMusical Tickで保持します。これにより短いGateから複数Stepにまたがる長音まで同じModelで扱えます。
 
 ## Notes
 
@@ -251,15 +281,109 @@ Accentは独立した強調Flag / Behaviorとして扱い、単純に「高いVe
 
 ## Note Length
 
-EngineがGateを解釈する場合、LengthはNote / Gateの継続時間を表します。
+Note Lengthは、Note / Gateがどれだけ継続するかを表します。
 
-対象例:
+内部では`lengthTicks`としてMusical Tickで保持します。v0.1の16分音符Stepは240 ticksなので、例として:
 
-- Synth Notes
-- Sampler Gate Playback
-- Sampler Loop Playback
+```text
+25% Step  = 60 ticks
+50% Step  = 120 ticks
+75% Step  = 180 ticks
+100% Step = 240 ticks
+2 Steps   = 480 ticks
+4 Steps   = 960 ticks
+```
 
-One Shot Samplerでは停止条件としてNote Lengthを無視して構いません。
+UIではTick値を直接見せず、音楽的に分かりやすい単位で操作します。
+
+初期候補:
+
+- 25%
+- 50%
+- 75%
+- 100%
+- 2 Steps
+- 3 Steps
+- 4 Steps
+- Custom
+
+例えば4/4・16分Gridでは:
+
+```text
+Step 1: Cmaj7
+Length: 4 Steps
+```
+
+とすると、Cmaj7は4分音符相当の長さで鳴ります。
+
+Synth、Sampler Gate、Sampler LoopはLengthを解釈します。
+
+One Shot Samplerでは、Note Offによる停止にLengthを使用しなくても構いません。
+
+### ChordのLength
+
+v0.1では1 Step内の`notes[]`は同じLengthを共有します。
+
+つまりChord内の各Noteへ別々のLengthを設定する機能は初期版では持ちません。
+
+将来、必要性が高ければNote単位Eventへ拡張します。
+
+## Tie
+
+Tieは内部で独立した音楽Eventとして保存するのではなく、**前のNote / ChordのLengthを延長する編集操作**として扱う方針です。
+
+例:
+
+```text
+Step 1: C3, Length = 1 Step
+Step 2: TIE
+```
+
+UI上でTIEを指定した結果、内部的には概念上:
+
+```text
+Step 1: C3, Length = 2 Steps
+Step 2: 新規Triggerなし
+```
+
+となります。
+
+Chordでも同様です。
+
+```text
+Step 1: Cmaj7
+Step 2: TIE
+Step 3: TIE
+Step 4: TIE
+```
+
+は、Step 1のCmaj7を4 Steps分保持する操作として扱います。
+
+この方式により、Tie専用EventをAudio Engineへ渡す必要がなく、Synth、Sampler Gate、将来のMIDIで共通化しやすくなります。
+
+Pattern境界をまたぐTie / Lengthの扱いは、Pattern LoopとPattern切替仕様を決める際に詳細化します。
+
+## Legato
+
+LegatoはTieとは別概念です。
+
+- Tie: 同じEventを長く保持する
+- Legato: 次のNoteへ切り替わる際にEnvelope等を再Triggerしない、または滑らかにつなぐ演奏方法
+
+主にMono Synthで重要です。
+
+例:
+
+```text
+Step 1: C3
+Step 2: D3 + Legato
+```
+
+Mono Synthでは、Step 2で新しいPitchへ移行してもAmp Envelopeを完全に再Triggerせず、Glideと組み合わせて滑らかにつなげられます。
+
+v0.1ではLegatoを必須にせず、Mono Synth / Glide実装時に追加できるよう`legato` Fieldを予約します。
+
+Poly SynthやChordに対するLegato Semanticsは複雑になるため、初期版では主にMono Voice向け機能として定義します。
 
 ## SwingとMicro Timing
 
@@ -322,6 +446,7 @@ Touch UIで扱える程度にCondition Languageを簡潔に保ちます。
 - Repeat Spacing
 - Velocity Shaping
 - Probabilityとの関係
+- 長いNote Lengthとの関係
 
 ## Parameter Lock
 
@@ -363,10 +488,14 @@ Synth / Pitched SamplerのStep Editor:
 - NOTE: 単音入力
 - CHORD: Chord Nameから自動生成
 - KEYBOARD: 任意Noteを鍵盤から直接入力
+- Length: Gate / Note Length設定
+- TIE: 直前EventのLengthを延長
+- 将来Legato: Mono Synthの滑らかなNote接続
 
 将来Gesture候補:
 
 - Step上でVertical SwipeしてVelocity調整
+- Active Stepを横方向へDragしてLengthを延長
 
 Step Dataが高度になってもGrid自体は視覚的に簡潔に保ちます。
 
@@ -381,6 +510,10 @@ Step Dataが高度になってもGrid自体は視覚的に簡潔に保ちます�
 - Accent
 - Master Swing
 - Independent Track Length
+
+Step Resolutionは1/16固定から開始します。
+
+Tieは専用EventではなくLength編集のShortcutとして実装できます。Legatoは内部拡張点を残し、Mono Synth実装時に追加します。
 
 Note入力UIはまずNOTE Modeを実装し、その後CHORD / KEYBOARDを段階的に追加しても構いません。内部の`notes[]` Modelは最初からPolyphonic対応にします。
 
