@@ -22,6 +22,22 @@ Harmony Engineは個別のSound Engineより上位に置き、生成したNote�
 
 これにより、初期UIを単純に保ちながら後からJazz、Neo Soul、House、R&B等で使われるTension Chordへ拡張できます。
 
+## Sequencer上の入力Mode
+
+Harmony EngineはStep Editorの`CHORD` Modeから利用します。
+
+```text
+[ NOTE ] [ CHORD ] [ KEYBOARD ]
+```
+
+- NOTE: 単音を直接指定
+- CHORD: Root / Chord Type等からHarmony EngineがNoteを生成
+- KEYBOARD: 任意のNote Combinationを手動入力
+
+3つは別々のEvent Typeではなく、同じ`Step.notes[]`を作るための入力方法です。
+
+これにより、Harmony機能を使わないUserやChordを手動で調整したいUserも同じSequencer Modelを利用できます。
+
 ## Chord生成
 
 UserがRootとChord Typeを選択します。
@@ -38,6 +54,36 @@ C, Eb, G, Bb
 ```
 
 StepはSynth固有のChord Presetではなく、通常のNote Eventとして保存・再生します。
+
+## 初期CHORD Mode UI
+
+スマートフォンでは、最初の画面に必要なControlを絞ります。
+
+```text
+CHORD
+
+Root      C
+Type      m7
+Inversion Root
+Octave    3
+
+Notes     C3 Eb3 G3 Bb3
+
+[AUDITION]
+```
+
+基本項目:
+
+- Root
+- Chord Type
+- Octave
+- Inversion
+- Generated Notes Preview
+- Audition
+
+Step共通項目としてVelocity / Length / Accentも編集できます。
+
+Chordを選んだ瞬間にPreview再生できると、音楽理論の知識が少なくても耳で選択できます。
 
 ## 初期Chord Vocabulary
 
@@ -56,7 +102,44 @@ StepはSynth固有のChord Presetではなく、通常のNote Eventとして保�
 - maj7
 - m7b5
 
-すべてを最初からUIへ並べる必要はなく、主要ChordをPrimary View、その他をDetail Viewへ分けても構いません。
+すべてを最初からUIへ並べる必要はありません。
+
+Primary ViewにはMajor / Minor / 7 / m7 / maj7等の頻用Chordを置き、その他は追加Menuへ分離する設計が適しています。
+
+## Inversion
+
+初期段階からInversionを扱える設計とします。
+
+4音Chordの場合の例:
+
+```text
+Root Position
+1st Inversion
+2nd Inversion
+3rd Inversion
+```
+
+ただしTriadでは存在しないInversionを表示しない等、Chordの構成音数に合わせてUIを変えます。
+
+初期実装は単純なOctave Rotationで構いません。高度なVoice LeadingやOpen Voicingは将来機能とします。
+
+## KEYBOARD Modeとの関係
+
+CHORD Modeで生成したNotesは、将来的にKEYBOARD Modeで個別に調整できるようにします。
+
+例:
+
+```text
+CHORD: Cmaj7
+Generated: C3 E3 G3 B3
+
+KEYBOARDで調整:
+C3 G3 B3 E4
+```
+
+これにより、Chord Nameから始めてから好みのVoicingへ編集できます。
+
+その際、元のChord Metadataを維持するか、手動編集として切り離すかは実装時に明確なRuleを定めます。
 
 ## 将来のExtended Chord / Tension
 
@@ -106,7 +189,11 @@ ChordEvent
 
 `extensions[]`と`alterations[]`は将来機能ですが、データモデル上は追加可能な構造を保ちます。
 
-Chord MetadataとGenerated Notesを両方永続化するか、Metadataから毎回再生成するかは未決定です。
+再生側のAudio EngineはChordEventを解釈せず、最終的な`generatedNotes[]` / `Step.notes[]`を受け取ります。
+
+Chord Metadataは、Chord Nameで後から再編集したりHarmony支援を行うための補助情報として扱います。
+
+Chord MetadataとGenerated Notesを両方永続化するか、Metadataから毎回再生成するかは、Project Format設計時に最終決定します。
 
 ## 発音数との関係
 
@@ -152,6 +239,8 @@ C minorの例:
 Cm | Ddim | Eb | Fm | Gm | Ab | Bb
 ```
 
+将来的にはCHORD Mode内に、Chord Type一覧とは別に`IN KEY`の候補列を用意することも検討します。
+
 ## Chord Progression支援
 
 将来機能:
@@ -182,3 +271,5 @@ Chord Notesを時間方向のNote Patternへ変換する将来Moduleです。
 Harmony UIは音楽理論の理解を要求するのではなく、その負担を減らす方向で設計します。
 
 初期UIでは4音程度までのChordを素早く選べることを優先し、高度なTension、Alteration、Voicing ControlはDetail Viewへ分離します。
+
+Chord Nameだけでなく生成Noteを常に確認でき、可能ならAuditionで即座に試聴できるようにします。
