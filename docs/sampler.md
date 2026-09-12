@@ -1,10 +1,10 @@
-# Sampler Specification
+# Sampler仕様
 
-## Goals
+## 目的
 
-The Sampler must work for short drum hits and longer musical/field-recording samples. Editing is non-destructive by default.
+Samplerは短いDrum Hitだけでなく、長い音楽SampleやField Recordingも扱えるようにします。編集は原則として非破壊です。
 
-## Initial parameter set
+## 初期Parameter Set
 
 ```text
 Sample
@@ -35,48 +35,46 @@ Filter
 └─ resonance
 ```
 
-## Waveform editor
+## Waveform Editor
 
-The sample editor should prominently display the waveform with draggable Start/End markers.
+Sample EditorではWaveformを大きく表示し、Start / End MarkerをDragできるようにします。
 
-Touch interaction should support:
+Touch操作では以下を想定します。
 
-- moving Start/End markers
-- zooming into the waveform later
-- audition/playback
+- Start / End Markerの移動
+- 将来的なWaveform Zoom
+- Audition / Playback
 
-For waveform rendering, use a reduced peak representation suitable for screen width rather than drawing every PCM sample directly.
+Waveform描画ではPCM Sampleをすべて直接描かず、画面幅に合わせてPeakを縮約した表示データを使用します。
 
-## Playback modes
+## Playback Mode
 
 ### One Shot
 
-A trigger plays the selected sample range through its end. Step note length does not stop playback.
+Triggerされたら指定Sample RangeのEndまで再生します。StepのNote Lengthでは停止しません。
 
-Suitable for drums and percussion.
+Drums / Percussion向けです。
 
 ### Gate
 
-Playback lasts while the note/gate is active, subject to the amp envelope.
+Note / GateがActiveな間だけ再生し、Amp Envelopeにも従います。
 
-Suitable for melodic samples, vocal fragments, etc.
+Melodic Sample、Vocal Fragment等に向きます。
 
 ### Loop
 
-A selected region repeats while the voice remains active.
+VoiceがActiveな間、指定区間を繰り返します。
 
-Initial implementation may reuse Start/End as the loop region; dedicated Loop Start/End markers can be added later.
+初期実装ではStart / EndをLoop Regionとして兼用し、専用Loop Start / End Markerは後で追加可能とします。
 
 ## Pitch
 
-Initial target:
+初期目標:
 
-- Coarse: at least ±24 semitones
+- Coarse: 少なくとも ±24 semitones
 - Fine: ±100 cents
 
-The sampler should support key tracking when a root note is defined.
-
-Example:
+Root Noteが設定されている場合はKey Trackingを行います。
 
 ```text
 root note = C3
@@ -85,47 +83,47 @@ E3 -> +4 semitones
 G3 -> +7 semitones
 ```
 
-This permits simple melodic sampler use and future chord playback.
+これにより簡易Melodic Samplerとして利用でき、将来のChord Playbackにも接続できます。
 
 ## Reverse
 
-Reverse should change playback direction non-destructively. The source sample file remains unchanged.
+Reverseは非破壊でPlayback Directionのみ変更し、Source Sample Fileは変更しません。
 
 ## Filter
 
-Initial types:
+初期Type:
 
 - Low Pass
 - High Pass
 
-Band Pass may be added if implementation cost is low.
+実装負荷が低ければBand Passも追加候補です。
 
-The filter subsystem should be conceptually reusable by Synth where practical.
+可能であればSamplerとSynthでFilterの概念・実装を共有します。
 
-## Parameter Lock integration
+## Parameter Lock連携
 
-Future P-Lock targets include at minimum:
+将来のP-Lock対象候補:
 
-- sample start
-- sample end (if musically useful)
-- pitch coarse/fine
-- reverse
-- amp envelope parameters
-- filter cutoff
-- filter resonance
+- Sample Start
+- Sample End（音楽的に有用なら）
+- Pitch Coarse / Fine
+- Reverse
+- Amp Envelope Parameters
+- Filter Cutoff
+- Filter Resonance
 
-## Sample override / Sample Lock
+## Sample Override / Sample Lock
 
-A Track has a default sample, but future Steps may reference a different sample.
+TrackはDefault Sampleを持ちますが、将来的にはStepごとに別Sampleを参照できるようにします。
 
 ```text
 Track default: snare_01.wav
 Step 9 override: clap_01.wav
 ```
 
-## Slice — future
+## Slice — 将来機能
 
-A sample can later contain named/numbered slices:
+Sampleは複数のSliceを保持可能にします。
 
 ```text
 Slice 1: start/end
@@ -133,21 +131,21 @@ Slice 2: start/end
 ...
 ```
 
-Future slice creation modes:
+将来のSlice作成方式:
 
-- equal divisions
-- transient detection
-- beat grid
+- Equal Divisions
+- Transient Detection
+- Beat Grid
 
-A Step may select a slice directly.
+StepからSliceを直接選択できるようにします。
 
-## Multisample — future
+## Multisample — 将来機能
 
-The data model should not permanently assume one sample per pitched instrument. A future multisample map may choose different source samples across key/velocity ranges.
+データModelは「Pitched Instrumentは必ず1 Sample」と固定しません。将来的にはKey / Velocity RangeごとにSource Sampleを切り替えるMultisample Mapへ拡張可能にします。
 
-## Recording — future
+## Recording — 将来機能
 
-Desired workflow:
+想定Workflow:
 
 ```text
 Microphone/Input
@@ -158,12 +156,12 @@ Microphone/Input
 → Sequence
 ```
 
-Not required for the first implementation milestone.
+最初のImplementation Milestoneでは必須としません。
 
-## Time Stretch — future
+## Time Stretch — 将来機能
 
-Time stretching is distinct from simple pitch/rate change and is explicitly deferred because of its higher DSP complexity.
+Time Stretchは単純なPitch / Rate Changeとは別機能です。DSP難度が高いため明確に後回しとします。
 
-## File safety and licensing
+## File SafetyとLicensing
 
-Imported user samples remain user assets. Bundled factory samples must have redistribution-safe licensing documented by the project.
+UserがImportしたSampleはUser Assetとして扱います。Factory Sampleは、アプリへの再配布を許可するLicenseが明確なものだけを使用し、Project内で記録します。
