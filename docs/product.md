@@ -1,139 +1,137 @@
-# Product Specification
+# 製品仕様
 
-## Working definition
+## 仮の製品定義
 
-The product is an original **groovebox-style music production application** built around a fast step sequencer, sample playback/editing, and synthesis.
+本プロジェクトは、高速なステップシーケンサー、Sample再生・編集、Synthesizerを中心としたオリジナルの **グルーヴボックス型音楽制作アプリ** です。
 
-It should be capable of making a useful musical sketch without requiring external instruments.
+外部音源がなくても、ある程度実用的な音楽スケッチを作れることを目標とします。
 
-## Design goals
+## 設計目標
 
-1. **Immediate** — a user should be able to create a beat quickly with a 16-step workflow.
-2. **Deep when needed** — advanced per-step controls should exist behind a simple surface.
-3. **Touch-first** — the main workflow should remain usable on phones/tablets while also working with mouse/desktop input.
-4. **Engine-flexible** — tracks choose a sound engine rather than being permanently designated as drums or melody.
-5. **Extensible** — the core data model should support future probability, parameter locks, conditional triggers, slicing, harmony tools, MIDI, and song mode.
-6. **Non-destructive** — sample start/end and similar edits should normally change playback metadata rather than rewrite the original sample file.
+1. **即時性** — 16-stepの操作で素早くBeatを作れること。
+2. **必要なときに深い編集** — Main UIは簡潔にしつつ、Step単位の高度な編集を用意すること。
+3. **Touch-first** — スマートフォンやTabletでも使いやすく、Mouse/Desktopでも自然に操作できること。
+4. **Engine-flexible** — TrackをDrum/Melodyで固定せず、Sound Engineを選択できること。
+5. **拡張可能** — Probability、Parameter Lock、Conditional Trigger、Slice、Harmony、MIDI、Song Modeなどを将来追加できること。
+6. **非破壊編集** — Sample Start/Endなどは原則として元ファイルを書き換えずPlayback Metadataとして保持すること。
 
-## Inspiration, not cloning
+## 参考にする考え方
 
-The project draws conceptual inspiration from several sequencer/groovebox traditions:
+特定製品のコピーではなく、以下の思想を参考にします。
 
-- TR-style fast step entry and visual clarity
-- Elektron-style per-step variation and parameter locking
-- modern groovebox independent track lengths/rates
-- MPC/Digitakt-style waveform-oriented sampling
-- DAW-style internal event flexibility where useful
+- TR系の高速なStep入力と視認性
+- Elektron系のStep単位の変化とParameter Lock
+- 現代的Grooveboxの独立Track Length / Rate
+- MPC / Digitakt系の波形中心Sampling
+- 必要に応じたDAW的な柔軟な内部Event表現
 
-The goal is not to recreate any specific commercial device.
-
-## Initial useful version
+## 最初の実用版
 
 ### Tracks
 
-- Target: approximately 8 tracks
-- Each track selects an engine:
+- 約8 Tracksを目標
+- 各TrackでEngineを選択
   - Sampler
   - Synth
-- Track length: 1–16 steps initially
-- Future: independent track playback rate
+- 初期Track Length: 1–16 Steps
+- 将来: Trackごとの独立Playback Rate
 
 ### Sequencing
 
-- 16-step primary grid
-- Note / notes
+- 16-stepを基本Gridとする
+- Note / Notes
 - Velocity
-- Note length
+- Note Length
 - Accent
-- Master swing
-- Multiple patterns (initial target: 8)
+- Master Swing
+- 複数Pattern（初期目標: 8）
 
 ### Sampler
 
-- Import common PCM audio files such as WAV/AIFF where supported
-- Waveform display
-- Non-destructive Start / End
-- One Shot / Gate / Loop playback concepts
-- Coarse/fine pitch
+- 対応可能な環境ではWAV / AIFF等の一般的PCM Audioを読み込み
+- Waveform表示
+- 非破壊Start / End
+- One Shot / Gate / Loop
+- Coarse / Fine Pitch
 - Reverse
-- Root note metadata
-- Amp envelope
-- Basic filter
+- Root Note Metadata
+- Amp Envelope
+- Basic Filter
 
 ### Synth
 
-Initial synthesis model: subtractive synthesizer.
+初期Synthは減算方式（Subtractive Synthesizer）とします。
 
-- 2 oscillators
-- Sine / triangle / saw / square
+- 2 Oscillators
+- Sine / Triangle / Saw / Square
 - Noise
 - Filter
 - Amp ADSR
 - Filter ADSR
 - LFO
-- Mono / poly mode
+- Mono / Poly
 - Glide
 - Presets
 
-### Factory content
+### Factory Content
 
-Initial target:
+初期目標:
 
-- roughly 70–100 drum / percussion / FX samples
-- roughly 30 synth presets
+- 約70–100 Drum / Percussion / FX Samples
+- 約30 Synth Presets
 
-All bundled content must have licensing that explicitly permits redistribution inside the application.
+同梱素材は、アプリ内での再配布を明確に許可するLicenseのみ使用します。
 
-## Future capabilities
+## 将来機能
 
-These are planned extension points, not necessarily v0.1 requirements:
+以下はv0.1必須ではありませんが、拡張先として設計します。
 
-- per-step probability
-- micro timing
-- parameter locks
-- conditional triggers
-- ratchet / repeat
-- per-track swing
-- independent track rate
-- sample lock / per-step sample override
-- slicing and transient detection
-- time stretching
-- multisampling
-- recording
-- external MIDI
-- additional synth engines (FM, wavetable, etc.)
-- project key / scale
-- chord generator
-- inversions and voicings
-- voice-leading assistance
-- arpeggiator
-- pattern chaining / song mode
-- mixer effects and master effects
+- Step Probability
+- Micro Timing
+- Parameter Lock
+- Conditional Trigger
+- Ratchet / Repeat
+- Track Swing
+- Independent Track Rate
+- Sample Lock / StepごとのSample Override
+- Slice / Transient Detection
+- Time Stretch
+- Multisampling
+- Recording
+- External MIDI
+- FM / Wavetable等の追加Synth Engine
+- Project Key / Scale
+- Chord Generator
+- Inversion / Voicing
+- Voice Leading支援
+- Arpeggiator
+- Pattern Chain / Song Mode
+- Mixer FX / Master FX
 
-## Product hierarchy
+## 製品階層
 
 ```text
 Project
-├─ Global musical settings
-├─ Sample library
+├─ Global Musical Settings
+├─ Sample Library
 ├─ Patterns
 │  └─ Tracks
 │     ├─ Engine
-│     ├─ Mixer settings
-│     └─ Steps / events
-└─ Future song / arrangement data
+│     ├─ Mixer Settings
+│     └─ Steps / Events
+└─ Future Song / Arrangement Data
 ```
 
-## Main-screen principle
+## Main Screenの原則
 
-The primary screen should remain focused on playing and programming steps. Deeper sound design and event editing should open in dedicated views rather than overcrowding the grid.
+Main Screenは演奏とStep入力に集中させます。Sound Designや詳細Event編集は専用Viewへ分離し、Gridを過密にしません。
 
-## Open product questions
+## 未決事項
 
-- Final target platforms
-- Final application framework
-- Native vs shared audio engine strategy
-- Exact maximum track and polyphony limits
-- Pattern length beyond 16 steps
-- Scope of effects in the first release
-- Whether recording is required before the first public release
+- 最終Target Platforms
+- Application Framework
+- Native / Shared Audio Engine戦略
+- 最大Track数・Polyphony
+- 16 Stepsを超えるPattern Length
+- 初期ReleaseでのEffects範囲
+- 初回公開前にRecordingを必須とするか
