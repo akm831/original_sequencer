@@ -1,12 +1,12 @@
-# Synthesizer Specification
+# Synthesizer仕様
 
-## Goal
+## 目的
 
-Provide a built-in instrument capable of basses, leads, plucks, pads, simple chords, and effects without external plugins.
+外部PluginなしでもBass、Lead、Pluck、Pad、簡単なChord、FXを作れる内蔵音源を提供します。
 
-The first synth engine should be deliberately compact and understandable: a subtractive synthesizer rather than a large multi-engine instrument.
+最初のSynth Engineは巨大なMulti-engine Instrumentではなく、理解しやすいコンパクトな減算方式Synthesizerとします。
 
-## Initial architecture
+## 初期アーキテクチャ
 
 ```text
 OSC 1 ─┐
@@ -21,7 +21,7 @@ LFO             → selectable destination(s)
 
 ## Oscillators
 
-Each oscillator should initially support:
+各Oscillatorは初期段階で以下を対応します。
 
 - Sine
 - Triangle
@@ -30,28 +30,28 @@ Each oscillator should initially support:
 
 Parameters:
 
-- wave
-- octave
-- coarse/fine tune as needed
-- level
+- Wave
+- Octave
+- 必要に応じてCoarse / Fine Tune
+- Level
 
-OSC 2 should support detuning against OSC 1.
+OSC 2はOSC 1に対するDetuneを設定できるようにします。
 
 ## Noise
 
-Simple noise source with level control.
+Level Control付きのSimple Noise Sourceを用意します。
 
 ## Filter
 
-Initial controls:
+初期Control:
 
-- cutoff
-- resonance
-- envelope amount
+- Cutoff
+- Resonance
+- Envelope Amount
 
-Initial filter type can be Low Pass; additional types may follow.
+初期Filter TypeはLow Passで構いません。その他のTypeは将来追加可能にします。
 
-Where practical, Sampler and Synth should share compatible filter concepts/implementation.
+可能であればSamplerとSynthで互換性のあるFilter概念・実装を共有します。
 
 ## Envelopes
 
@@ -66,37 +66,35 @@ ADSR:
 
 ### Filter Envelope
 
-ADSR plus envelope amount.
+ADSR + Envelope Amount。
 
 ## LFO
 
-Initial controls:
+初期Control:
 
-- rate
-- amount
-- destination
+- Rate
+- Amount
+- Destination
 
-Possible initial destinations:
+初期Destination候補:
 
-- pitch
-- filter cutoff
-- amplitude
+- Pitch
+- Filter Cutoff
+- Amplitude
 
-More sophisticated modulation routing can be deferred.
+高度なModulation Routingは後回しにします。
 
-## Voice mode
+## Voice Mode
 
 - Mono
 - Poly
-- Glide/Portamento for mono behavior
+- Mono時のGlide / Portamento
 
-Exact polyphony limit remains an implementation decision and should be recorded when chosen.
+具体的なPolyphony Limitは実装時に決定し、`docs/decisions.md` に記録します。
 
-## Sequencer integration
+## Sequencer連携
 
-Synth tracks consume the same Step model as sampler tracks.
-
-Examples:
+Synth TrackはSampler Trackと同じStep Modelを使用します。
 
 ```text
 notes = [C2]
@@ -104,28 +102,28 @@ velocity = 110
 length = 0.75 step
 ```
 
-Chord example:
+Chord例:
 
 ```text
 notes = [C3, E3, G3, B3]
 ```
 
-## Parameter Lock integration
+## Parameter Lock連携
 
-Future P-Lock targets should include musically useful parameters such as:
+将来のP-Lock対象候補:
 
-- oscillator wave
-- oscillator tune/detune
-- oscillator levels
-- filter cutoff
-- filter resonance
-- filter envelope amount
-- envelope times
-- LFO rate
-- LFO amount
-- glide
+- Oscillator Wave
+- Oscillator Tune / Detune
+- Oscillator Levels
+- Filter Cutoff
+- Filter Resonance
+- Filter Envelope Amount
+- Envelope Times
+- LFO Rate
+- LFO Amount
+- Glide
 
-Stable parameter identifiers should be used, for example:
+安定したParameter IDを使用します。
 
 ```text
 synth.osc1.wave
@@ -138,7 +136,7 @@ synth.lfo.amount
 
 ## Presets
 
-Initial target: approximately 30 useful presets across categories such as:
+初期目標は約30 Presetsです。
 
 - Bass
 - Lead
@@ -147,14 +145,14 @@ Initial target: approximately 30 useful presets across categories such as:
 - Chord
 - FX
 
-Preset files/state should describe synth parameters; chord identity itself should not be baked into a preset because chord generation belongs to the Harmony/Sequencer layer.
+PresetはSynth Parameter Stateを保存します。ChordそのものはPresetへ焼き込まず、Harmony / Sequencer Layerで生成します。
 
-## Future synth engines
+## 将来のSynth Engine
 
-Potential additions:
+候補:
 
 - FM
 - Wavetable
-- more advanced modulation matrix
+- 高度なModulation Matrix
 
-These should appear as additional engine types or engine modes without requiring a rewrite of the sequencer.
+Sequencerを書き直さず、追加Engine TypeまたはEngine Modeとして拡張できる構造にします。
