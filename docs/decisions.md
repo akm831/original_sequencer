@@ -40,6 +40,34 @@ VelocityとAccentは別々の音楽的概念として保持します。
 
 TimingはMillisecondsだけでなくMusical Unitsで保持します。現在の設計目標は960 PPQNです。
 
+### Step Resolution
+
+v0.1ではMain Gridを1 Step = 16分音符に固定します。4/4では16 Steps = 1小節です。
+
+Step Resolution変更は将来機能とし、初期版では16-Step Grooveboxとしての分かりやすさを優先します。
+
+### Note Length
+
+Note LengthはStep数そのものではなくMusical Tickで保持します。960 PPQNでは16分音符1 Step = 240 ticksです。
+
+UIではTickを直接入力させず、25% / 50% / 75% / 100% / 2 Steps / 4 Steps等の音楽的な単位で操作します。
+
+v0.1ではChord内の複数Noteは同じLengthを共有します。
+
+### Tie
+
+Tieは独立したSequencer Eventとして保存せず、直前のNote / ChordのLengthを延長する編集操作として扱います。
+
+これによりSynth、Sampler Gate、将来のMIDIで同じDuration Modelを使用できます。
+
+### Legato
+
+LegatoはTieと分離します。
+
+Tieは同じEventの継続、Legatoは次のNoteへ移行するときのEnvelope RetriggerやGlide等の発音Behaviorです。
+
+初期版では主にMono Synth向けの将来機能として`legato`拡張点を残します。
+
 ### SwingとMicro Timing
 
 Swingは規則的なGroove Timing、Micro TimingはStep単位のOffsetとして分離します。
@@ -184,6 +212,9 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Polyphonic NoteへのParameter Lock
 - Sample LockとSampler Parameter Lockの関係
 - CHORDで生成したNotesをKEYBOARDで編集した場合のHarmony Metadata保持Rule
+- Pattern境界をまたぐ長いNote / Tieの扱い
+- 新しいTriggerが既存の長いNoteと重なった場合のVoice Rule
+- Polyphonic Chordに対する将来のLegato Semantics
 
 ### Pattern Behavior
 
@@ -193,6 +224,7 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - BPMをPatternごとかGlobalにするか
 - Pattern Copy / Duplicate Workflow
 - 16を超えるMaximum Pattern Length
+- Pattern Loop時の長音のCarry / Retrigger Rule
 
 ### Sampler
 
@@ -216,6 +248,7 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - LFOのTriplet / Dotted対応時期
 - Preset Formatの具体的Schema
 - VelocityをFilter等へどこまでRoutingするか
+- Mono Legato時のEnvelope Retrigger Rule
 
 ### Harmony
 
@@ -293,4 +326,23 @@ Chord専用Step Typeを作る案、Synth内部でChordを発音する案、常�
 影響:
 Audio EngineはChord Nameではなく最終的な`notes[]`を受け取る。
 Harmony Metadataは入力・再編集支援のための補助情報として扱う。
+
+2026-09-12 — Note Length / Tie / Legato / Step Resolution
+決定:
+v0.1は1 Step = 16分音符で固定する。
+Note LengthはMusical Tickで保持する。
+Tieは独立Eventにせず、直前EventのLengthを延長する編集操作とする。
+LegatoはTieと分離し、主にMono Synthの発音Behaviorとして扱う。
+
+理由:
+TR系16-Stepの即時性を維持しながら、Bass、Melody、Chordで短音から複数Stepにまたがる長音まで共通Modelで表現するため。
+Tie専用EventをAudio Engineへ持ち込まず、Sampler / Synth / MIDIでDuration Semanticsを共通化するため。
+
+検討した代替案:
+StepごとにTie Eventを保存する案、初期版から複数Resolutionを自由に切り替える案、LengthをStep数だけで保存する案。
+
+影響:
+960 PPQNでは16分音符1 Step = 240 ticksとなる。
+UIはTickではなくStep比率やStep数でLengthを表示する。
+Resolution変更、Pattern境界のTie、Polyphonic Legatoは将来詳細化する。
 ```
