@@ -1,31 +1,31 @@
-# Harmony Engine — Future Specification
+# Harmony Engine — 将来仕様
 
-## Goal
+## 目的
 
-Allow users to create harmonically useful material without requiring advanced theory knowledge, while keeping the resulting music represented as normal note events.
+高度な音楽理論を知らなくても、音楽的に使いやすいHarmony素材を作れるようにします。一方で、最終的な内部表現は通常のNote Eventとして扱います。
 
-The Harmony Engine belongs above individual sound engines. It should generate notes that can be sent to Synth, pitched Sampler, or future MIDI output.
+Harmony Engineは個別のSound Engineより上位に置き、生成したNoteをSynth、Pitched Sampler、将来のMIDI Outputへ送れるようにします。
 
-## Chord generation
+## Chord生成
 
-User selects a root and chord type:
+UserがRootとChord Typeを選択します。
 
 ```text
 Root: C
 Chord Type: m7
 ```
 
-The engine expands this to notes:
+Harmony Engineが以下のNoteへ展開します。
 
 ```text
 C, Eb, G, Bb
 ```
 
-The Step ultimately stores/plays note events rather than a synth-specific chord preset.
+StepはSynth固有のChord Presetではなく、通常のNote Eventとして保存・再生します。
 
-## Future chord vocabulary
+## 将来のChord Vocabulary
 
-Examples:
+候補:
 
 - major
 - minor
@@ -41,11 +41,11 @@ Examples:
 - m9
 - maj9
 
-The first implementation can expose a smaller set.
+最初の実装では種類を絞って構いません。
 
-## Chord event metadata
+## Chord Event Metadata
 
-Conceptual representation:
+概念表現:
 
 ```text
 ChordEvent
@@ -57,65 +57,63 @@ ChordEvent
 └─ generatedNotes[]
 ```
 
-Whether chord metadata is persisted alongside generated notes or regenerated from metadata remains an open implementation decision.
+Chord MetadataとGenerated Notesを両方永続化するか、Metadataから毎回再生成するかは未決定です。
 
 ## Voicing
 
-Future options include:
+将来候補:
 
-- root position
-- inversions
-- open voicing
-- drop voicings
+- Root Position
+- Inversions
+- Open Voicing
+- Drop Voicings
 
-The purpose is musical control, not exhaustive academic coverage.
+網羅的な音楽理論機能ではなく、実際の作曲に使いやすいControlを優先します。
 
-## Project key / scale
+## Project Key / Scale
 
-Future Project state:
+将来のProject State:
 
 ```text
 key = C
 scale = Minor
 ```
 
-This enables scale-aware suggestions and input constraints.
+これによりScale-awareなSuggestionや入力制限を可能にします。
 
-## Diatonic assistance
+## Diatonic支援
 
-For a selected key/scale, the UI may show valid diatonic chords for rapid entry.
+選択中のKey / Scaleに対し、Diatonic ChordをUI上に候補表示できるようにします。
 
-Example for C minor:
+C minorの例:
 
 ```text
 Cm | Ddim | Eb | Fm | Gm | Ab | Bb
 ```
 
-## Chord progression assistance
+## Chord Progression支援
 
-Future feature:
+将来機能:
 
-- suggest likely next chords based on current key and previous chord
-- suggestions must remain optional; the user is always free to choose any chord
+- 現在のKeyと直前のChordをもとに次のChord候補を提示
+- Suggestionは常に任意とし、Userは自由に任意のChordを選択可能
 
-## Voice leading
+## Voice Leading
 
-Future automatic voicing can minimize note movement between adjacent chords.
-
-Example progression:
+将来的には、隣接Chord間のNote移動量が小さくなるようInversion / Voicingを自動選択できるようにします。
 
 ```text
 Cmaj7 → Am7 → Fmaj7 → G7
 ```
 
-Instead of always using root position, the engine can choose inversions that produce smoother movement.
+常にRoot Positionを使うのではなく、より滑らかなVoice Movementを作れるようにします。
 
 ## Arpeggiator
 
-Potential future module that transforms chord notes into timed note patterns.
+Chord Notesを時間方向のNote Patternへ変換する将来Moduleです。
 
-It should consume note/chord information and emit ordinary sequencer note events where practical.
+可能な限り通常のSequencer Note Eventを出力する構造にします。
 
-## UI principle
+## UI原則
 
-The harmony UI should reduce theory friction rather than require users to understand chord formulas. Advanced voicing controls can remain behind a detail view.
+Harmony UIは音楽理論の理解を要求するのではなく、その負担を減らす方向で設計します。高度なVoicing ControlはDetail Viewへ分離できます。
