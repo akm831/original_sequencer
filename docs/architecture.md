@@ -27,7 +27,7 @@ Mixer / FX
 Audio Output
 ```
 
-PersistenceはProject Modelの横に位置し、音楽的挙動を定義せずProject Stateを保存・復元します。
+PersistenceはProject Modelの横に位置し、音楽的挙動を定義せずProject StateとAssetを保存・復元します。
 
 ## 主要モジュール
 
@@ -58,6 +58,8 @@ Project
 ├─ patterns[]
 └─ future: song/arrangement
 ```
+
+Project Model自体はFile Pathや特定PlatformのStorage APIへ依存させません。
 
 ### Pattern
 
@@ -143,6 +145,40 @@ Trackごとの基本概念:
 - Insert Effects
 - Master Effects
 
+### Persistence
+
+担当:
+
+- Project MetadataのSerialization / Deserialization
+- Explicit Schema Versioning
+- Schema Migration
+- Sample Asset管理
+- Missing Asset検出 / Relink
+- Save Validation
+- Atomic Save相当の安全な書込
+
+Project MetadataはJSON互換の明示的Schemaを初期候補とします。
+
+SampleはOSの絶対Pathを正本にせず、Project内のStable Asset IDで参照します。
+
+```text
+Sampler State
+└─ sampleAssetId
+
+Sample Library
+└─ SampleAsset
+   ├─ id
+   ├─ relativePath
+   ├─ fileName
+   └─ optional metadata
+```
+
+Imported Sampleは原則としてPortable Project Assetへ取り込みます。
+
+PresetはPreset名だけを保存せず、Project保存時点の実際のEngine Stateを保存します。
+
+詳細は`docs/persistence.md`を参照します。
+
 ## Event Flow
 
 Synth Noteの例:
@@ -193,5 +229,7 @@ Crop / Normalizeなどの破壊的処理を将来追加する場合は、明示�
 ## Platform戦略
 
 現時点ではPlatformを固定しません。Application / Sequencer Layerを共有しつつ、LatencyやDSP要件に応じてAudio BackendだけNative化できる構造を維持します。
+
+Storage UIやProject Bundleの実装はPlatformごとに異なって構いませんが、Project SchemaとStable Asset Referenceの意味は共通にします。
 
 具体的な技術選定はCore Musical Modelが十分固まってから行います。
