@@ -64,6 +64,8 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - JUCE 9.0.2 CMake skeleton
 - Host `audio_core_smoke` test
 - Host `flutter_bridge_smoke` test
+- Flutter Dart FFI bridge source wiring
+- Android向けFlutter Native bridgeのshared library export準備
 
 ## Current Topic
 
@@ -74,12 +76,14 @@ Technology Prototype P0 / P1実装
 - `prototypes/common/audio_core` はFramework非依存C++20 static libraryとしてbuild可能
 - 共通Coreはsilence render / lifecycle /最小Diagnosticsを実装済み
 - Flutter Native側に薄いC ABI bridgeを実装済み
+- Flutter Dart側にAndroid用FFI wrapperを追加し、Native handle生成 / Diagnostics snapshot取得の配線を実装済み
+- Android build時はFlutter Native bridgeをshared libraryとして出力できるCMake構成に変更済み
 - Flutter UI / JUCE UIのP0 source skeletonを作成済み
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
 
 次に進める主題:
 
-- Flutter Android runner / Dart FFI wiring
+- Flutter Android runner / Native library packaging
 - JUCE Android build設定
 - Android NDK / compileSdk / minSdk / targetSdkの固定
 - 同一Android Reference DeviceでCandidate A/BをBuild / Launch
@@ -207,10 +211,8 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 Technology PrototypeのP0を実機Bring-upへ進め、そのままP1へ接続する。
 
-1. Flutter Android runnerを作成し、Dart FFIからNative bridgeをロードできるようにする
+1. Flutter Android runnerを追加し、`liboriginal_sequencer_flutter_bridge.so`をAPKへ組み込んでDart FFIの実ロードを確認する
 2. JUCE CandidateのAndroid build設定を追加する
 3. Android toolchain versionをReference build環境で固定する
 4. 同一Android Reference DeviceでCandidate A/BをBuild / Launchする
 5. Audio Callbackを起動し、Actual Sample Rate / Callback FramesをDiagnosticsへ接続する
-
-実機P0 / P1が比較可能になった後、P2のReference Audio Core + Diagnosticsを拡張する。
