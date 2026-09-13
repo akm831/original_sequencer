@@ -50,9 +50,20 @@ Flutter patch version は実際に Reference build machine へ導入した SDK �
 - Host / desktop CMake `FetchContent` の `GIT_TAG` を `9.0.2` に固定
 - JUCE CMake APIはAndroid targetをサポートしていないため、Android P0はCMake直接生成ではなくProjucerのAndroid Studio exporterを使う
 - `prototypes/juce/CMakeLists.txt` はhost / desktop用として維持し、Android toolchainで誤使用した場合は明示的に停止する
-- Android exporterの再生成可能な`.jucer`設定は次の実装単位
+- Android再生成元として `prototypes/juce/SequencerPrototype.jucer` を追加済み
+- `.jucer`には `app/Main.cpp` とCommon Reference Audio Coreの `AudioCore.cpp` / `AudioCore.h` を登録済み
+- Android exporterでは `androidMinimumSDK=24` / `androidTargetSDK=36` を固定済み
+- JUCE 9系ではSDK / NDKのローカルpathをExporterへ埋め込む方式ではないため、NDK 28.2.13676358はReference build machine側へ導入し、生成後のGradle projectで利用versionを確認する
 
-この方針はCandidate BをAndroid比較から外すものではありません。Candidate A/Bとも同じAndroid Reference Deviceで比較するというPrototype仕様を維持し、Candidate固有の正規build経路だけを分けます。
+Reference JUCE source layout:
+
+```text
+workspace/
+├─ original_sequencer/
+└─ JUCE/                 # tag 9.0.2
+```
+
+この配置では `.jucer` から `../../../JUCE/modules` を参照します。JUCE sourceを別場所へ置く場合はProjucerでmodule pathだけ変更します。
 
 ### Android audio candidate
 
@@ -114,8 +125,9 @@ JUCE 9.0.2のAndroid側は、JUCE CMake APIではなくProjucer Android Studio e
 
 ```text
 JUCE 9.0.2 / Projucer
+  + prototypes/juce/SequencerPrototype.jucer
   ↓ Android Studio exporter
-Generated Gradle project
+prototypes/juce/Builds/Android
   ↓
 JUCE app source
   + Common Reference Audio Core
@@ -123,7 +135,16 @@ JUCE app source
 APK
 ```
 
-次の実装単位では、Repositoryから再生成できる最小`.jucer`設定と手順を追加し、Candidate Aと同じcompileSdk / minSdk / targetSdk / NDK条件へ可能な範囲で揃えます。
+`.jucer`を開いてSave ProjectするとAndroid Studio projectを再生成できます。Reference build machineでは生成後に以下を確認します。
+
+- min SDK: 24
+- target / compile SDK: 36
+- NDK: 28.2.13676358
+- `app/Main.cpp` がcompile対象
+- `../common/audio_core/src/AudioCore.cpp` がcompile対象
+- `../common/audio_core/include` がheader search pathへ入る
+
+実生成物はProjucer / Android Studio versionによって差分が大きくなりやすいため、まず `.jucer` と再生成手順を正本として管理します。
 
 ## 現時点で未確認のもの
 
@@ -131,9 +152,9 @@ APK
 - Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging実確認
 - Dart FFI の実機 library load
 - Flutter Android Gradle wrapperのReference build machineでの生成 / 固定
-- JUCE Android exporter projectの生成
+- JUCE Android exporter projectの実生成
 - JUCE Android app の実機 build / launch
-- Projucer生成側でのAndroid SDK / NDK固定方法の実確認
+- Projucer生成側でcompile / target SDK 36とNDK 28.2.13676358が実際に使用されることの確認
 - Oboe callback bring-up
 - JUCE audio callback bring-up
 - Actual sample rate / callback frames
