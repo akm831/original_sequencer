@@ -49,25 +49,29 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Callback Headroom / Performance Diagnostics方針
 - 32 Voice Baseline / 64 Voice Stretch Benchmark方針
 - Device Performance Profile方針
+- Platform / Audio Backend Requirements
+- Framework比較用Must / Should / Benchmark評価軸
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Platform / Framework評価に必要なAudio Requirements
+Framework / Language / Audio Backend候補比較
 
 次に検討する主題:
 
-- Audio Backend候補が満たすべきRealtime要件
-- Sample-accurate Event Scheduling対応
-- Variable Buffer Size / 128 Frames Target対応
-- Low-latency Live Input経路
-- Realtime-safe Queue / Threading要件
-- Sampler Streaming / Asset DecodeのThread境界
-- 32 Voice Baseline / 64 Voice Stretch Benchmarkの実施可能性
-- iOS / Android / Desktopを見据えたAudio Session / Device Restart対応
-- Flutter / Native / JUCE / Web系構成を比較するための評価軸
+- Flutter + Native Audio構成
+- Fully Native構成
+- JUCE / C++中心構成
+- Web Technology + Native Audio Wrapper構成
+- iOS / Android / DesktopのPlatform Coverage
+- Touch-first UI開発効率
+- Native Bridge / Realtime境界
+- Sample-accurate Scheduling実現性
+- 128 Frames / Variable Buffer対応
+- 32 Voice Baseline / 64 Voice Stretch Benchmark実現性
+- Build / Debug / Maintenance Cost
 
-Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyは`docs/audio-buffer-latency.md`、Performance Budgetは`docs/performance-budget.md`です。
+候補比較の合格条件は`docs/platform-audio-requirements.md`を正本とします。
 
 ## Important Current Decisions
 
@@ -115,6 +119,9 @@ Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyは`docs/au
 - Global Budget到達はSafety Fallbackとし、通常時に頻発させない
 - Dynamic Quality Scalingはv0.1必須にしない
 - Device / Backend Performance ProfileはProjectへ保存しない
+- Framework選定ではUIの便利さだけでなくRealtime AudioのMust要件を先に評価する
+- Managed / Cross-platform UIを採用してもRealtime AudioをNative Layerへ分離できる構成は許容する
+- Framework候補は共通Reference BenchmarkとVertical Slice Prototypeで最終評価する
 
 ## Primary References
 
@@ -122,11 +129,13 @@ Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyは`docs/au
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/performance-budget.md`
-4. `docs/audio-buffer-latency.md`
-5. `docs/audio-engine.md`
-6. `docs/architecture.md`
-7. `docs/decisions.md`
+3. `docs/platform-audio-requirements.md`
+4. `docs/performance-budget.md`
+5. `docs/audio-buffer-latency.md`
+6. `docs/audio-engine.md`
+7. `docs/architecture.md`
+8. `docs/decisions.md`
+9. `docs/roadmap.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
@@ -165,11 +174,11 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Platform / Framework評価に必要なAudio Requirementsを仕様化する。
+Framework / Language / Audio Backend候補を`docs/platform-audio-requirements.md`の共通評価軸で比較する。
 
 その後の有力候補:
 
-- Framework / Language / Audio Backend候補比較
+- Technology Prototypeの最小Scope決定
 - Sample Streaming / Caching
 - Resampling / Interpolation Quality
 - Effect Architecture / CPU Budget
