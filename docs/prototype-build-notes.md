@@ -48,11 +48,15 @@ Flutter patch version は実際に Reference build machine へ導入した SDK �
 
 - JUCE: 9.0.2
 - Host / desktop CMake `FetchContent` の `GIT_TAG` を `9.0.2` に固定
-- JUCE CMake APIはAndroid targetをサポートしていないため、Android P0はCMake直接生成ではなくProjucerのAndroid Studio exporterを使う
+- JUCE CMake APIはAndroid targetをサポートしていないため、Android P0/P1はCMake直接生成ではなくProjucerのAndroid Studio exporterを使う
 - `prototypes/juce/CMakeLists.txt` はhost / desktop用として維持し、Android toolchainで誤使用した場合は明示的に停止する
 - Android再生成元として `prototypes/juce/SequencerPrototype.jucer` を追加済み
 - `.jucer`には `app/Main.cpp` とCommon Reference Audio Coreの `AudioCore.cpp` / `AudioCore.h` を登録済み
 - Android exporterでは `androidMinimumSDK=24` / `androidTargetSDK=36` を固定済み
+- P1 callback bring-up用に `juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` modulesを追加済み
+- `app/Main.cpp` は `juce::AudioAppComponent` でoutput-only Audio Deviceを起動し、callback内でsilenceを維持しながらCommon `AudioCore::render()` を呼ぶ構成へ更新済み
+- Actual Sample Rate / Callback Frames / Restart CountはCandidate側のatomic snapshotから5 HzでUI表示する。Audio callbackからUI objectへ直接アクセスしない
+- Common `AudioCore::diagnostics()` のcross-thread snapshot契約はP2で整備するため、P1 UIからは直接読まない
 - JUCE 9系ではSDK / NDKのローカルpathをExporterへ埋め込む方式ではないため、NDK 28.2.13676358はReference build machine側へ導入し、生成後のGradle projectで利用versionを確認する
 
 Reference JUCE source layout:
@@ -89,7 +93,7 @@ P0 の host 側では次の smoke test を持ちます。
 
 2026-09-13 時点で、Repository と同じ CMake 構成を再現した host build で両 test が pass することを確認しました。
 
-今回のDart FFI / Android runner追加後は、このSession環境にFlutter SDK / Android SDKが無いためAndroid実Buildは未確認です。既存Host C ABI contractを維持したまま、AndroidではGradle → CMake → Common Core / Native bridgeまでのsource wiringを追加しています。
+今回のJUCE P1 source wiring後は、このSession環境にJUCE source / Android SDK / NDK / Projucerが無いため、JUCE host buildとAndroid実Buildは未確認です。Android実機確認まではP1完了扱いにしません。
 
 ## Flutter Android build wiring
 
@@ -129,6 +133,8 @@ JUCE 9.0.2 / Projucer
   ↓ Android Studio exporter
 prototypes/juce/Builds/Android
   ↓
+JUCE Audio Device callback
+  ↓
 JUCE app source
   + Common Reference Audio Core
   ↓
@@ -143,6 +149,8 @@ APK
 - `app/Main.cpp` がcompile対象
 - `../common/audio_core/src/AudioCore.cpp` がcompile対象
 - `../common/audio_core/include` がheader search pathへ入る
+- `juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` が生成projectへ入る
+- 実機launch後、Audio callbackが継続して動きActual Sample Rate / Callback Framesが画面へ表示される
 
 実生成物はProjucer / Android Studio versionによって差分が大きくなりやすいため、まず `.jucer` と再生成手順を正本として管理します。
 
@@ -155,10 +163,13 @@ APK
 - JUCE Android exporter projectの実生成
 - JUCE Android app の実機 build / launch
 - Projucer生成側でcompile / target SDK 36とNDK 28.2.13676358が実際に使用されることの確認
+- JUCE Audio Device callbackの実機継続動作
+- JUCE Actual Sample Rate / Callback Framesの実機値
 - Oboe callback bring-up
-- JUCE audio callback bring-up
-- Actual sample rate / callback frames
+- Flutter CandidateのActual sample rate / callback frames
 - Sine output
+- Common Coreのthread-safe Diagnostics snapshot
+- Callback Load計測
 - Device restart
 
 これらを確認するまでは P0 / P1 完了とはしません。
