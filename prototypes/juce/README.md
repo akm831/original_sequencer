@@ -2,17 +2,20 @@
 
 JUCE/C++ 中心構成の比較候補です。
 
-## P0 current state
+## Current state
 
-- UI source skeleton: `app/Main.cpp`
-- Desktop / host build skeleton: `CMakeLists.txt`
+- UI source: `app/Main.cpp`
+- Desktop / host build: `CMakeLists.txt`
 - Android Projucer project: `SequencerPrototype.jucer`
 - JUCE version: 9.0.2
-- Common Reference Audio CoreはCandidate Aと共有する方針
+- Common Reference Audio CoreはCandidate Aと共有
+- `juce::AudioAppComponent`でP1 Audio Device callbackのsource wiringを追加済み
+- Callbackではまずsilenceを維持し、Actual Sample Rate / Callback Framesを5 HzのDiagnostics表示へ渡す
+- Audio callbackからUI objectは触らず、表示用の値はatomic snapshotを介してMessage Threadから読む
 
 ## Android build path
 
-JUCEのCMake APIはAndroid targetをサポートしていないため、Android P0は`juce_add_gui_app()`をAndroid toolchainへ直接渡す構成にはしません。
+JUCEのCMake APIはAndroid targetをサポートしていないため、Android P0/P1は`juce_add_gui_app()`をAndroid toolchainへ直接渡す構成にはしません。
 
 AndroidではJUCE 9.0.2のProjucer Android Studio exporterを使い、`SequencerPrototype.jucer`から生成されたAndroid Studio / Gradle projectをbuildします。
 
@@ -28,7 +31,7 @@ JUCE app source + Common Reference Audio Core
 APK
 ```
 
-Repository rootの`prototypes/juce/CMakeLists.txt`はhost / desktop側のsource smoke build用として残します。誤ってAndroid toolchainで実行した場合は、未サポート経路であることを明示するエラーで停止します。
+Repository rootの`prototypes/juce/CMakeLists.txt`はhost / desktop側のbuild用として残します。誤ってAndroid toolchainで実行した場合は、未サポート経路であることを明示するエラーで停止します。
 
 ## JUCE source layout
 
@@ -71,14 +74,32 @@ JUCE 9系ではAndroid SDK / NDKのローカルpathを各Exporterへ埋め込む
 5. `Builds/Android`をAndroid Studioで開く
 6. Reference build machineでSDK 36 / NDK 28.2.13676358を利用してbuildする
 
-`.jucer`には`app/Main.cpp`に加えてCommon Reference Audio Coreの`AudioCore.cpp` / `AudioCore.h`も登録してあります。これによりCandidate BでもCandidate Aと同じCore sourceを使う境界を維持します。
+`.jucer`には`app/Main.cpp`、Common Reference Audio Core、P1で必要な`juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` modulesを登録しています。
+
+## P1 callback flow
+
+```text
+JUCE Audio Device
+  ↓
+AudioAppComponent::getNextAudioBlock()
+  ├─ output bufferをclearしてsilenceを維持
+  ├─ actual callback frame countをatomic snapshotへ記録
+  └─ Common AudioCore::render(...)
+
+Message Thread Timer (5 Hz)
+  ↓
+actual sample rate / callback frames / restart countを表示
+```
+
+`AudioCore::diagnostics()`のUI Threadからの直接読取りは、P2でthread-safe snapshot契約を整えるまで行いません。P1ではCandidate側の小さなatomic値だけを表示に使います。
 
 ## Next Android work
 
 1. JUCE 9.0.2 Projucerで`Builds/Android`を実生成する
 2. 生成されたGradle設定でcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を実確認する
-3. `app/Main.cpp`をAndroid実機上でlaunchする
-4. Common Reference Audio CoreがAndroid buildへ入ることを確認する
-5. P1でJUCE Audio Device callbackを起動し、Actual Sample Rate / Callback FramesをDiagnosticsへ接続する
+3. Android実機でlaunchし、Audio callbackが継続して動くことを確認する
+4. 画面上でActual Sample Rate / Callback Framesを確認・記録する
+5. 次にsilenceからsine outputへ進める
+6. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測へ進める
 
 生成物を無条件にRepositoryへ大量commitするのではなく、再生成元の`.jucer`と手順を正本として維持します。
