@@ -58,6 +58,7 @@ Flutter patch version は実際に Reference build machine へ導入した SDK �
 - Actual Sample Rate / Callback Frames / Restart CountはCandidate側のatomic snapshotから5 HzでUI表示する。Audio callbackからUI objectへ直接アクセスしない
 - Common `AudioCore::diagnostics()` のcross-thread snapshot契約はP2で整備するため、P1 UIからは直接読まない
 - JUCE 9系ではSDK / NDKのローカルpathをExporterへ埋め込む方式ではないため、NDK 28.2.13676358はReference build machine側へ導入し、生成後のGradle projectで利用versionを確認する
+- `prototypes/juce/verify_android_export.py` を追加し、`.jucer`の必須設定とProjucer生成後のAndroid projectを機械的に検査できるようにした
 
 Reference JUCE source layout:
 
@@ -153,6 +154,35 @@ APK
 - 実機launch後、Audio callbackが継続して動きActual Sample Rate / Callback Framesが画面へ表示される
 
 実生成物はProjucer / Android Studio versionによって差分が大きくなりやすいため、まず `.jucer` と再生成手順を正本として管理します。
+
+### JUCE Android export preflight
+
+Projucerで生成する前でも、`.jucer`の重要設定は次で検査できます。
+
+```bash
+python3 prototypes/juce/verify_android_export.py
+```
+
+この段階では `Builds/Android` が無くても警告だけで成功します。確認する項目は以下です。
+
+- Android Studio exporterが存在する
+- min SDK 24 / target SDK 36
+- `Builds/Android` を生成先にしている
+- C++20 compiler flag
+- Common Audio Coreのinclude path
+- 必須JUCE audio modules
+- `Main.cpp` と `AudioCore.cpp` のcompile登録
+- Reference build machine上のNDK 28.2.13676358の導入状況（`ANDROID_SDK_ROOT` / `ANDROID_HOME` が設定されている場合）
+
+ProjucerでSave Projectした後は、生成物必須モードで再確認します。
+
+```bash
+python3 prototypes/juce/verify_android_export.py --require-generated
+```
+
+生成後は、Gradle等のtext fileを走査してmin / target / compile SDKと主要source参照を確認します。NDK versionが生成projectへ明示固定されていない場合は警告を出し、Reference build machineで実際に選択されたNDKを別途確認します。
+
+この検証はAndroid buildそのものの代わりではありません。P0 / P1完了には、引き続き同一Reference Device上でBuild / Launchし、Audio callbackと実値Diagnosticsを確認する必要があります。
 
 ## 現時点で未確認のもの
 
