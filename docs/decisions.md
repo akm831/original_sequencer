@@ -112,6 +112,16 @@ Pattern ChainとSong / Arrangement ModeはPattern Sequencerより上位Layerへ�
 
 Sample Start / End、Reverse、Root Note等は原則として非破壊編集にします。
 
+### Sampler Voice Management
+
+Sampler Triggerは独立Voiceを生成し、同一SampleのRetriggerは標準でOverlapを許可します。
+
+Sampler v0.1は1 Trackあたり最大8 Voicesを暫定上限とし、Voice StealingはRelease中の最古Voice、その後に最古のActive Voiceを選びます。
+
+Choke GroupはTrack間で共有可能とし、Pattern切替ではGate / LoopをReleaseへ移行し、One Shot Tailは原則Carryします。
+
+VoiceはTrigger時点のResolved Sampler Stateを保持します。
+
 ### Synthの方向性
 
 最初のBuilt-in Synthは巨大なThird-party Instrumentを組み込むのではなく、コンパクトなSubtractive Synthesizerとします。
@@ -181,6 +191,42 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 
 高度なTension、Alteration、VoicingはDetail Viewへ分離します。
 
+### Audio Engine Scheduling
+
+Sequencer / TransportとRealtime Audio Callbackを分離し、SchedulerがLookaheadでTimestamp付きAudio Commandを準備します。
+
+Audio CallbackはBuffer内のEventを可能な限りSample Offset位置で実行し、UI / Project Model / File I/Oへ直接依存しません。
+
+Parameter LockはAudio Thread外でEvent-localなResolved Stateへ解決します。
+
+Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持します。
+
+### Audio Buffer / Latency
+
+Audio Logicを特定のBuffer Sizeへ固定しません。
+
+v0.1の性能目標は128 Frames程度をPreferred、256 Frames程度をStable Fallbackとし、512 Frames以上でもCompatibility動作できる構造を維持します。
+
+Sequencer Lookaheadは約50 msを初期候補としますが、Live InputはそのLookaheadを待たないLow-latency Pathを持ちます。
+
+Scheduler QueueはBoundedとし、Overflow時もAudio ThreadをBlockせず、Stop / Panic系Commandを失いにくいFail-safeを持ちます。
+
+### Global Polyphony / Performance Budget
+
+Track Voice LimitとGlobal Safety Budgetを分離します。
+
+Sampler / Synth Polyは各Track最大8 Voicesを暫定上限とし、Engine構造は最大64 Active Voiceを表現可能にします。
+
+ただし64 Voicesを全Device / 全Patchで保証するとはしません。
+
+Framework / Backend比較では32 Concurrent VoicesをBaseline Performance Target候補、64 Light-to-Moderate VoicesをStretch Targetとします。
+
+Voice CountだけでなくCallback処理時間を主要性能指標とし、Reference ProjectではCallback Load約50%以下をNormal Targetとします。
+
+Global Budget到達時はRelease中の古いVoiceを優先して整理し、通常再生でGlobal Stealが頻発する状態は正常とみなしません。
+
+Dynamic Quality Scalingはv0.1必須にはせず、安定性、Timing、予測可能なVoice制限、Buffer Fallbackを優先します。
+
 ### Factory Content
 
 同梱Sample / Presetは再配布可能なLicenseが明確なものだけを使用します。
@@ -195,9 +241,14 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Synth Presetsは約30
 - v0.1はMaster Swing、Track Swingは後で追加
 - Independent Track Lengthを確認した後にTrack Rateを追加
+- Sampler Polyphonyは1 Sampler Trackあたり最大8 Voiceを暫定上限とする
 - Synth Polyphonyは1 Synth Trackあたり最大8 Voiceを暫定目標とする
 - KEYBOARD Modeは1〜2 Octave程度の横スクロール可能なTouch Keyboardを想定
 - Pattern UIはCurrent / Queued / Idleを区別する
+- 128 Frames程度をPreferred Audio Buffer Targetとする
+- Sequencer Lookaheadは約50 msを初期候補とする
+- 32 Concurrent VoicesをBaseline Performance Target候補とする
+- 64 Light-to-Moderate VoicesをStretch Performance Targetとする
 
 ## 未決事項
 
@@ -218,12 +269,13 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 未決事項:
 
 - Fully Shared EngineかPlatform-native Layerか
-- Sample-accurate Scheduling Strategy
-- Global Maximum Polyphony
-- Voice Stealing
+- Global Voice LimitのDevice / Backend別具体値
 - Resampling / Interpolation Quality
 - Filter Implementation
 - Effects Architecture
+- Sample Streaming / Caching Strategy
+- Synth Mono Legato / Retrigger Semantics
+- Continuous Automation / Live Parameter補間
 
 ### Project Format
 
@@ -245,7 +297,6 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Polyphonic NoteへのParameter Lock
 - Sample LockとSampler Parameter Lockの関係
 - CHORDで生成したNotesをKEYBOARDで編集した場合のHarmony Metadata保持Rule
-- 新しいTriggerが既存の長いNoteと重なった場合のVoice Rule
 - Polyphonic Chordに対する将来のLegato Semantics
 
 ### Pattern Behavior
@@ -256,18 +307,16 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 - Pattern Chainの編集UI
 - Song / Arrangement Modeの具体的Data Model
 - Pattern切替を1小節以外にも設定可能にするか
-- Long NoteとLoop先の同Pitch Triggerが重なる場合のVoice Rule
-- One Shot / FX TailをPattern切替時にどこまでCarryするかの詳細
 
 ### Sampler
 
 詳細未定:
 
-- Exact Loop Behavior
+- 専用Loop Start / EndやLoop Crossfade等を含む高度なLoop Behavior
 - Start / EndのUnitとPrecision
-- One Shot時のEnvelope Behavior
+- One Shot Envelopeの詳細
 - Slice Representation
-- Sample Caching Strategy
+- Sample Caching / Streaming Strategy
 - PlatformごとのSupported File Formats
 
 ### Synth
@@ -275,7 +324,7 @@ CHORD ModeではRoot、Chord Type、Octave、Inversionを基本Controlとし、�
 詳細未定:
 
 - 8 Voice暫定値の実機性能検証
-- Voice Stealing Rule
+- Engine固有Voice Stealing Overrideが必要か
 - Oscillator Anti-aliasing Strategy
 - Filter Algorithm / Character
 - LFOのTriplet / Dotted対応時期
@@ -399,4 +448,69 @@ UIはCurrent / Queued / Idleを区別する。
 同一Pattern Loopでは長いNoteが境界をまたげる。
 別Pattern切替時は旧PatternのGate Noteを終了しつつ、Release / One Shot / Effect Tailは可能な限り自然に残す。
 将来32 / 64 Step化は16-Step Page方式を優先し、Pattern Chain / Song Modeは上位Layerへ追加する。
+
+2026-09-13 — Sampler Voice Management
+決定:
+同一Sample Retriggerは標準でOverlapを許可し、Sampler Trackは最大8 Voicesを暫定上限とする。
+Voice StealingはRelease中の最古Voice、その後に最古Voiceを選ぶ。
+Choke GroupはTrack間で共有可能とし、Pattern切替時はGate / LoopをRelease、One Shot Tailは原則Carryする。
+
+理由:
+Drum / FX TailやPitched Sampler Chordを自然に扱いながら、Voice数を予測可能に制御するため。
+
+検討した代替案:
+同一SampleをRetriggerするたび前Voiceを停止する案、Track内だけのChoke、無制限Polyphony。
+
+影響:
+Sampler VoiceはTrigger時点のResolved Stateを保持する。
+Audio Engine側に明示的なVoice Lifecycle / Choke / Steal処理が必要になる。
+
+2026-09-13 — Audio Engine Scheduling
+決定:
+Sequencer / SchedulerとRealtime Audio Callbackを分離し、Timestamp付きAudio CommandをQueue経由で渡す。
+Buffer内Eventは可能な限りSample Offset位置で実行する。
+Parameter LockはAudio Thread外でResolved Trigger Stateへ解決する。
+
+理由:
+UI負荷やProject Model探索からAudio Threadを隔離し、Step TimingをBuffer境界へ量子化せず安定再生するため。
+
+検討した代替案:
+Audio Callbackが直接Project Modelを走査する案、EventをBuffer先頭へ丸める案。
+
+影響:
+Realtime-safe QueueとLookahead Schedulerが必要になる。
+Framework / Backend比較ではSample-accurate Schedulingを実現できるかが重要評価項目になる。
+
+2026-09-13 — Audio Buffer / Latency
+決定:
+128 Frames程度をPreferred Target、256 Frames程度をStable Fallbackとする。
+Sequencer Lookaheadは約50 msを初期候補とするが、Live InputはLookaheadを待たないLow-latency Pathを使用する。
+
+理由:
+低LatencyとMobile端末での安定性を両立し、Sequencerの先読みがLive演奏Latencyを直接増やさないようにするため。
+
+検討した代替案:
+64 Frames以下をv0.1必須にする案、すべてのInputを同じLookahead経路へ通す案、Buffer Sizeを固定する案。
+
+影響:
+Audio LogicはVariable Buffer Sizeへ対応する。
+Device Restart時にはAudio Frame OriginとPending Queueを再構築する。
+
+2026-09-13 — Global Polyphony / Performance Budget
+決定:
+Track Voice LimitとGlobal Safety Budgetを分離する。
+Engine構造は最大64 Active Voiceを表現可能にし、32 Concurrent VoicesをBaseline Performance Target候補、64 Light-to-Moderate VoicesをStretch Targetとする。
+Reference ProjectではCallback Load約50%以下をNormal Targetとし、継続的な70〜80%以上はHeadroom不足として評価する。
+
+理由:
+Voice数だけではSamplerとSynthの実CPU Cost差を表せず、Realtime Audioの安全性はCallback Deadlineへの余裕で評価する必要があるため。
+Mobile向けGrooveboxとして3〜4音Chord、Release Tail、複数Trackを現実的に扱える共通Benchmarkを持つため。
+
+検討した代替案:
+Global Voice数だけで性能を判断する案、全Deviceで64 Heavy Synth Voicesを保証する案、負荷に応じて演奏中に音質を自動変更する案。
+
+影響:
+Framework / Backend比較ではSampler-heavy、Synth-heavy、Mixed、BurstのReference Benchmarkを共通で使用する。
+Performance ProfileはDevice / Backend側で選びProjectには保存しない。
+Global Budget到達はSafety Fallbackとし、通常再生で頻発する場合は性能要件またはProfileを見直す。
 ```
