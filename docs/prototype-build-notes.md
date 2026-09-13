@@ -51,7 +51,12 @@ cmake --build build/prototypes
 ctest --test-dir build/prototypes --output-on-failure
 ```
 
-P0 最初の smoke test では `audio_core_smoke` が通ることを確認します。
+P0 の host 側では次の smoke test を持ちます。
+
+- `audio_core_smoke`: 共通 `AudioCore` の silence render、Diagnostics、再初期化を確認
+- `flutter_bridge_smoke`: Flutter Native 層の C ABI が Core の初期化と Diagnostics を正しく中継することを確認
+
+2026-09-13 時点で、Repository と同じ CMake 構成を再現した host build で両 test が pass することを確認しました。
 
 ## 現時点で未確認のもの
 
@@ -59,6 +64,7 @@ P0 最初の smoke test では `audio_core_smoke` が通ることを確認しま
 - JUCE Android app の実機 build / launch
 - Android NDK version の固定
 - Android compileSdk / minSdk / targetSdk の固定
+- Flutter FFI の Dart ↔ native 実配線
 - Oboe callback bring-up
 - JUCE audio callback bring-up
 - Actual sample rate / callback frames
