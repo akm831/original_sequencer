@@ -75,15 +75,18 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - JUCE `AudioAppComponent`によるoutput-only Audio Device callback source wiring
 - JUCE Candidate側でActual Sample Rate / Callback Frames / Restart CountをUIへ渡すatomic diagnostics wiring
 - JUCE Android `.jucer` / 生成project設定を検査する`verify_android_export.py` preflight追加
+- Common `AudioCore::diagnostics()` のcross-thread atomic snapshot実装
+- Host smoke testでrender中のDiagnostics同時readを検証
 
 ## Current Topic
 
-Technology Prototype P0 / P1実装
+Technology Prototype P0 / P1実機Bring-up + P2準備
 
 現在の到達点:
 
 - `prototypes/common/audio_core` はFramework非依存C++20 static libraryとしてbuild可能
 - 共通Coreはsilence render / lifecycle /最小Diagnosticsを実装済み
+- Common `AudioCore::diagnostics()` はAudio callback側更新値をatomic snapshotとしてUI側から非Blockingで取得できる形へ進めた
 - Flutter Native側に薄いC ABI bridgeを実装済み
 - Flutter Dart側にAndroid用FFI wrapperを追加し、Native handle生成 / Diagnostics snapshot取得の配線を実装済み
 - Android build時はFlutter Native bridgeをshared libraryとして出力できるCMake構成に変更済み
@@ -95,8 +98,9 @@ Technology Prototype P0 / P1実装
 - JUCE側は`AudioAppComponent`でP1 Audio Device callbackを起動するsource wiringへ進み、callback内ではsilenceを維持しつつCommon `AudioCore::render()`を呼ぶ構成にした
 - JUCEのActual Sample Rate / Callback Frames / Restart CountはCandidate側atomic snapshotから5 HzでUI表示する構成にした
 - `prototypes/juce/verify_android_export.py`で生成前の`.jucer`必須設定を検査でき、生成後は`--require-generated`でAndroid projectのSDK / source wiringを追加確認できる
-- Common `AudioCore::diagnostics()`のcross-thread snapshotはまだP2未対応なので、JUCE UIから直接読まない
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
+- Common diagnosticsの同時read/writeはhost ThreadSanitizerでもdata raceなしを確認した
+- Callback Load計測などP2の残りは未実装
 - このSession環境にはJUCE source / Projucer / Android SDK / NDK / Android実機がないため、Projucer実生成と実機Build / Launchは未確認
 
 次に進める主題:
@@ -108,7 +112,8 @@ Technology Prototype P0 / P1実装
 - Flutter APKへのNative library packagingとDart FFI実ロード確認
 - JUCE Audio Device callbackの実機継続動作とActual Sample Rate / Callback Frames確認
 - SilenceからSineの安定出力へ進める
-- P2でCommon Coreのthread-safe Diagnostics snapshot / Callback Load計測へ進む
+- P2でCallback Load計測 / Audio Frame Timelineへ進む
+- P2 Common diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
 
 PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造とCheckpointは`docs/prototype-implementation-plan.md`を正本とします。
 
@@ -174,7 +179,7 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 - Flutter PrototypeのAndroid SDK / NDKは比較再現性のため明示固定する
 - JUCE CandidateのAndroid buildはJUCE CMake APIではなくProjucer Android Studio exporterを使用する
 - JUCE P1ではUI ThreadとAudio Callbackの間で直接UI objectを共有せず、実機値表示は軽量snapshotを介す
-- Common Coreのcross-thread Diagnostics契約はP2で明示的に整備する
+- Common Coreのcross-thread Diagnosticsはatomic snapshotとしてP2準備を開始し、Callback Load等は引き続きP2で整備する
 - 最終Technology Decision前にiOSでもMust要件のSmoke Testを行う
 
 ## Primary References
@@ -241,4 +246,5 @@ Technology PrototypeのP0を実機Bring-upへ進め、そのままP1を実機確
 5. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
 6. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
 7. 両候補でsilenceからsine outputへ進める
-8. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測を実装する
+8. P2でCallback Load計測 / Audio Frame Timelineを実装する
+9. Common Coreのthread-safe Diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
