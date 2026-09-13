@@ -74,6 +74,7 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - JUCE P1用`juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` module wiring
 - JUCE `AudioAppComponent`によるoutput-only Audio Device callback source wiring
 - JUCE Candidate側でActual Sample Rate / Callback Frames / Restart CountをUIへ渡すatomic diagnostics wiring
+- JUCE Android `.jucer` / 生成project設定を検査する`verify_android_export.py` preflight追加
 
 ## Current Topic
 
@@ -93,12 +94,15 @@ Technology Prototype P0 / P1実装
 - JUCE Android再生成元の`SequencerPrototype.jucer`は追加済み
 - JUCE側は`AudioAppComponent`でP1 Audio Device callbackを起動するsource wiringへ進み、callback内ではsilenceを維持しつつCommon `AudioCore::render()`を呼ぶ構成にした
 - JUCEのActual Sample Rate / Callback Frames / Restart CountはCandidate側atomic snapshotから5 HzでUI表示する構成にした
+- `prototypes/juce/verify_android_export.py`で生成前の`.jucer`必須設定を検査でき、生成後は`--require-generated`でAndroid projectのSDK / source wiringを追加確認できる
 - Common `AudioCore::diagnostics()`のcross-thread snapshotはまだP2未対応なので、JUCE UIから直接読まない
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
+- このSession環境にはJUCE source / Projucer / Android SDK / NDK / Android実機がないため、Projucer実生成と実機Build / Launchは未確認
 
 次に進める主題:
 
 - JUCE 9.0.2 Projucerで`Builds/Android`を実生成
+- `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiringを検査
 - Projucer生成側のcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を実確認
 - Flutter / JUCEを同一Android Reference DeviceでBuild / Launch
 - Flutter APKへのNative library packagingとDart FFI実ロード確認
@@ -231,9 +235,10 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 Technology PrototypeのP0を実機Bring-upへ進め、そのままP1を実機確認する。
 
 1. JUCE 9.0.2 Projucerで`prototypes/juce/Builds/Android`を生成する
-2. 生成projectがcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を使うことを確認する
-3. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
-4. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
-5. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
-6. 両候補でsilenceからsine outputへ進める
-7. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測を実装する
+2. `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiringを検査する
+3. 生成projectがcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を使うことを確認する
+4. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
+5. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
+6. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
+7. 両候補でsilenceからsine outputへ進める
+8. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測を実装する
