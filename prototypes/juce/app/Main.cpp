@@ -4,6 +4,7 @@
 #include "original_sequencer/prototype/AudioCore.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 
@@ -35,8 +36,15 @@ public:
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override {
         const auto maxCallbackFrames = static_cast<std::uint32_t>(
             std::max(samplesPerBlockExpected, 1));
-        audioCore.initialize(sampleRate, maxCallbackFrames);
+
+        if (audioWasPrepared.exchange(true, std::memory_order_relaxed)) {
+            audioRestartCount.fetch_add(1, std::memory_order_relaxed);
+        }
+
+        actualSampleRate.store(sampleRate, std::memory_order_relaxed);
+        actualCallbackFrames.store(0, std::memory_order_relaxed);
         callbackStartFrame = 0;
+        audioCore.initialize(sampleRate, maxCallbackFrames);
     }
 
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override {
@@ -51,12 +59,14 @@ public:
         const auto channelCount = static_cast<std::uint32_t>(
             std::max(bufferToFill.buffer->getNumChannels(), 0));
 
+        actualCallbackFrames.store(frameCount, std::memory_order_relaxed);
         audioCore.render(nullptr, frameCount, channelCount, callbackStartFrame);
         callbackStartFrame += frameCount;
     }
 
     void releaseResources() override {
         audioCore.shutdown();
+        actualCallbackFrames.store(0, std::memory_order_relaxed);
         callbackStartFrame = 0;
     }
 
@@ -68,19 +78,23 @@ public:
 
 private:
     void timerCallback() override {
-        const auto snapshot = audioCore.diagnostics();
-
         diagnostics.setText(
-            "sampleRate: " + juce::String(snapshot.sampleRate, 1)
-                + " Hz\ncallbackFrames: " + juce::String(snapshot.callbackFrames)
-                + "\nrenderedFrames: " + juce::String(snapshot.renderedFrames)
-                + "\naudioRestartCount: " + juce::String(snapshot.audioRestartCount),
+            "sampleRate: "
+                + juce::String(actualSampleRate.load(std::memory_order_relaxed), 1)
+                + " Hz\ncallbackFrames: "
+                + juce::String(actualCallbackFrames.load(std::memory_order_relaxed))
+                + "\naudioRestartCount: "
+                + juce::String(audioRestartCount.load(std::memory_order_relaxed)),
             juce::dontSendNotification);
     }
 
     juce::Label title;
     juce::Label diagnostics;
     original_sequencer::prototype::AudioCore audioCore;
+    std::atomic<double> actualSampleRate{0.0};
+    std::atomic<std::uint32_t> actualCallbackFrames{0};
+    std::atomic<std::uint32_t> audioRestartCount{0};
+    std::atomic<bool> audioWasPrepared{false};
     std::uint64_t callbackStartFrame = 0;
 };
 
