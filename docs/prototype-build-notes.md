@@ -30,18 +30,33 @@
 - Flutter Android runnerのGradle / Manifest / Kotlin Activityを追加済み
 - `prototypes/flutter_native/platform/android/CMakeLists.txt` をAndroid native buildの入口として追加し、Common Audio CoreとFlutter Native bridgeを同一CMake buildへ接続済み
 - `android/app/build.gradle.kts` から上記CMake入口を参照し、APKへ `liboriginal_sequencer_flutter_bridge.so` を組み込める構成にした
-- Gradle wrapper binaryとReference build machine上での実build / APK内容確認は未実施
+- Prototype比較の再現性のためAndroid SDK / NDK値を明示固定した
 
-Patch version は実際に Reference build machine へ導入した SDK の `flutter --version` 出力を実機 build 結果と一緒に追記します。
+Reference Android values:
+
+- compileSdk: 36
+- minSdk: 24
+- targetSdk: 36
+- NDK: 28.2.13676358
+- externalNativeBuild CMake: 3.22.1
+
+これらはFlutter 3.47系の現行Android defaultと整合する値を、Prototype比較用に動かない値として明示したものです。製品版の最低対応OSを決める判断ではありません。
+
+Flutter patch version は実際に Reference build machine へ導入した SDK の `flutter --version` 出力を実機 build 結果と一緒に追記します。
 
 ### JUCE candidate
 
 - JUCE: 9.0.2
-- CMake `FetchContent` の `GIT_TAG` を `9.0.2` に固定
+- Host / desktop CMake `FetchContent` の `GIT_TAG` を `9.0.2` に固定
+- JUCE CMake APIはAndroid targetをサポートしていないため、Android P0はCMake直接生成ではなくProjucerのAndroid Studio exporterを使う
+- `prototypes/juce/CMakeLists.txt` はhost / desktop用として維持し、Android toolchainで誤使用した場合は明示的に停止する
+- Android exporterの再生成可能な`.jucer`設定は次の実装単位
+
+この方針はCandidate BをAndroid比較から外すものではありません。Candidate A/Bとも同じAndroid Reference Deviceで比較するというPrototype仕様を維持し、Candidate固有の正規build経路だけを分けます。
 
 ### Android audio candidate
 
-- Oboe: 1.10.0 を P1 の直接 backend 候補とする
+- Oboe: 1.10.0 を P1 のFlutter + Native側直接 backend候補とする
 - Actual sample rate / callback frames は要求値ではなく stream 開始後の実値を Diagnostics へ記録する
 
 JUCE 内部の Android backend と Oboe を「同じ実装」とは扱いません。比較では各 Candidate の実際の callback path を記録します。
@@ -93,15 +108,32 @@ flutter build apk --debug
 
 その後、APK内に `liboriginal_sequencer_flutter_bridge.so` が対象ABIごとに含まれることを確認し、実機launch時に画面上の `Native bridge: loaded` を確認します。
 
+## JUCE Android build wiring
+
+JUCE 9.0.2のAndroid側は、JUCE CMake APIではなくProjucer Android Studio exporterを使います。
+
+```text
+JUCE 9.0.2 / Projucer
+  ↓ Android Studio exporter
+Generated Gradle project
+  ↓
+JUCE app source
+  + Common Reference Audio Core
+  ↓
+APK
+```
+
+次の実装単位では、Repositoryから再生成できる最小`.jucer`設定と手順を追加し、Candidate Aと同じcompileSdk / minSdk / targetSdk / NDK条件へ可能な範囲で揃えます。
+
 ## 現時点で未確認のもの
 
 - Flutter Android app の実機 build / launch
 - Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging実確認
 - Dart FFI の実機 library load
 - Flutter Android Gradle wrapperのReference build machineでの生成 / 固定
+- JUCE Android exporter projectの生成
 - JUCE Android app の実機 build / launch
-- Android NDK version の固定
-- Android compileSdk / minSdk / targetSdk の固定
+- Projucer生成側でのAndroid SDK / NDK固定方法の実確認
 - Oboe callback bring-up
 - JUCE audio callback bring-up
 - Actual sample rate / callback frames
