@@ -6,9 +6,22 @@
 
 現在は製品動作とアーキテクチャを定義している段階です。後の決定文書で明示されるまでは、Framework、Language、UI Toolkit、Audio Backendが確定済みだと仮定しないでください。
 
+## Session開始時
+
+新しいChatGPT / Codex Sessionでは、長大な引き継ぎPromptや過去Chatの要約へ依存しないでください。
+
+まず以下を読みます。
+
+1. `AGENTS.md`
+2. `docs/status.md`
+
+`docs/status.md`は現在地を示す短い「しおり」です。Current Topicに関連する仕様書だけを追加で確認してください。
+
+確定仕様の正本は各`docs/*.md`であり、`docs/status.md`へ詳細仕様を重複させません。
+
 ## 仕様の正本
 
-実装前に必ず次を確認してください。
+実装または設計判断の前に、必要な範囲で次を確認してください。
 
 1. `docs/product.md`
 2. `docs/architecture.md`
@@ -19,7 +32,26 @@
 7. `docs/decisions.md`
 8. `docs/roadmap.md`
 
+全ファイルを毎Session無条件に全文要約する必要はありません。`docs/status.md`からCurrent Topicを確認し、関連資料を優先してください。
+
 コードと仕様が矛盾する場合、黙ってどちらかを選ばないでください。原則として文書化された仕様を優先し、設計を意図的に変更する場合は仕様書も更新してください。
+
+## Session終了 / Topic完了時
+
+Chatが長くなった場合に巨大な引き継ぎ文章を生成するのではなく、Repositoryを更新してください。
+
+1. 確定した仕様を該当する`docs/*.md`へ反映
+2. 重要な判断を`docs/decisions.md`へ反映
+3. 学習価値のある基礎知識を`docs/learning/`へ反映
+4. `docs/status.md`のRecently Completed / Current Topic / Nextを更新
+
+新しいSessionはRepositoryから状態を復元できる状態を維持します。
+
+## Learning Notes
+
+仕様そのものではないAudio / MIDI / DSP / Sequencer等の基礎知識は、必要に応じて`docs/learning/`へ教材として蓄積します。
+
+Learning Noteは仕様の正本ではありません。仕様は各Domain Specと`docs/decisions.md`を優先します。
 
 ## アーキテクチャ上の制約
 
