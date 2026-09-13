@@ -45,23 +45,29 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Sequencer Lookahead / Live Input分離方針
 - Queue Capacity / Overflow Safety方針
 - Audio Device Restart / Clock再同期方針
+- Global Polyphony / Performance Budget方針
+- Callback Headroom / Performance Diagnostics方針
+- 32 Voice Baseline / 64 Voice Stretch Benchmark方針
+- Device Performance Profile方針
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Global Polyphony / Performance Budget
+Platform / Framework評価に必要なAudio Requirements
 
 次に検討する主題:
 
-- Global Voice Budgetの役割と初期Target
-- Sampler / Synth / Mixer / FXごとのCPU Budget
-- Track単位Voice LimitとGlobal Budgetの関係
-- Global Budget到達時のVoice Stealing / Degradation Policy
-- Callback Deadlineに対するSafety Margin
-- Performance Diagnosticsの合格基準
-- Framework / Audio Backend比較で測るBenchmark項目
+- Audio Backend候補が満たすべきRealtime要件
+- Sample-accurate Event Scheduling対応
+- Variable Buffer Size / 128 Frames Target対応
+- Low-latency Live Input経路
+- Realtime-safe Queue / Threading要件
+- Sampler Streaming / Asset DecodeのThread境界
+- 32 Voice Baseline / 64 Voice Stretch Benchmarkの実施可能性
+- iOS / Android / Desktopを見据えたAudio Session / Device Restart対応
+- Flutter / Native / JUCE / Web系構成を比較するための評価軸
 
-Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyの正本は`docs/audio-buffer-latency.md`です。
+Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyは`docs/audio-buffer-latency.md`、Performance Budgetは`docs/performance-budget.md`です。
 
 ## Important Current Decisions
 
@@ -91,7 +97,7 @@ Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyの正本�
 - Parameter LockはAudio Thread外でEvent-localなResolved Stateへ解決する
 - ChokeはVoice Allocation前、Voice Stealingは必要時のAllocation Fallbackとして処理する
 - Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持する
-- Synth Polyも1 Trackあたり最大8 Voicesを暫定上限とし、Global Voice Budgetの具体値は実機計測後に決定する
+- Synth Polyも1 Trackあたり最大8 Voicesを暫定上限とする
 - Audio Logicを特定Buffer Sizeへ固定しない
 - 128 Frames程度をPreferred Target、256 Frames程度をStable Fallbackとする
 - 512 Frames以上でもCompatibility動作できる構造を維持する
@@ -100,6 +106,15 @@ Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyの正本�
 - Queue OverflowでもAudio ThreadをBlockせず、Stop / Panic系を失いにくいFail-safeを持つ
 - Device Restart時はPending CommandとAudio Frame Originを再構築する
 - Project Musical TimeはSample Rate変更から独立させる
+- Track Voice LimitとGlobal Safety Budgetを分離する
+- Engine構造は最大64 Active Voiceを表現可能にする
+- 32 Concurrent VoicesをBaseline Performance Target候補とする
+- 64 Light-to-Moderate VoicesをStretch Targetとする
+- Reference ProjectではCallback Load約50%以下をNormal Targetとする
+- 継続的に70〜80%以上へ張り付く状態はHeadroom不足として評価する
+- Global Budget到達はSafety Fallbackとし、通常時に頻発させない
+- Dynamic Quality Scalingはv0.1必須にしない
+- Device / Backend Performance ProfileはProjectへ保存しない
 
 ## Primary References
 
@@ -107,9 +122,9 @@ Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyの正本�
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/audio-buffer-latency.md`
-4. `docs/audio-engine.md`
-5. `docs/voice-management.md`
+3. `docs/performance-budget.md`
+4. `docs/audio-buffer-latency.md`
+5. `docs/audio-engine.md`
 6. `docs/architecture.md`
 7. `docs/decisions.md`
 
@@ -150,11 +165,11 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Global Polyphony / Performance Budgetを仕様化する。
+Platform / Framework評価に必要なAudio Requirementsを仕様化する。
 
 その後の有力候補:
 
-- Platform / Framework評価に必要なAudio要件整理
 - Framework / Language / Audio Backend候補比較
 - Sample Streaming / Caching
 - Resampling / Interpolation Quality
+- Effect Architecture / CPU Budget
