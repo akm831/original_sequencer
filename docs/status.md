@@ -6,9 +6,11 @@
 
 ## Phase
 
-Specification / Architecture
+Specification / Architecture → Technology Prototype準備
 
-まだ本格実装開始前です。Framework / Language / UI Toolkit / Audio Backendは最終確定していません。
+製品本実装（Phase 1）はまだ開始していません。
+
+Framework / Language / UI Toolkit / Audio Backendは最終確定しておらず、Flutter UI + Native / C++ AudioとJUCE / C++を共通Prototypeで比較してから決定します。
 
 ## Product Direction
 
@@ -53,27 +55,27 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Framework比較用Must / Should / Benchmark評価軸
 - Framework / Language / Audio Backend候補比較
 - Prototype候補をFlutter + Native AudioとJUCE / C++へ絞り込み
+- Technology Prototypeの共通Vertical Slice / Benchmark / 採用Gate
+- Prototype Repository構造 / Reference Audio Core境界 / Implementation Checkpoints
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Technology Prototypeの最小Scope決定
+Technology Prototype P0 / P1実装準備
 
-次に検討する主題:
+次に進める主題:
 
-- Flutter UI + Native / C++ Audio Prototypeの境界
-- JUCE / C++ Prototypeの境界
-- 2候補で同じ機能を比較するための共通Vertical Slice
-- 最小Sampler / Oscillator実装
-- Sample-accurate Triggerの検証方法
-- Live Pad Latencyの計測方法
-- Callback Load / XRun / Voice CountのDiagnostics
-- 32 Voice Baseline / 64 Voice Stretchの共通Stress条件
-- Route Change / Interruption復帰試験
-- UI Gesture中のAudio Stability
-- Prototype完了 / 採用判断Gate
+- `prototypes/` Repository Skeleton
+- Common Reference Audio CoreのBuild方式
+- Flutter Candidateの最小Build Skeleton
+- JUCE Candidateの最小Build Skeleton
+- Androidを第一Bring-up候補としてAudio Device Callbackを起動
+- Actual Sample Rate / Callback FramesのDiagnostics
+- Framework / SDK Versionの固定とBuild Notes
 
-候補比較の正本は`docs/framework-comparison.md`、合格条件は`docs/platform-audio-requirements.md`とします。
+PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造とCheckpointは`docs/prototype-implementation-plan.md`を正本とします。
+
+候補比較の基準は`docs/framework-comparison.md`、Hard Gateは`docs/platform-audio-requirements.md`とします。
 
 ## Important Current Decisions
 
@@ -127,6 +129,10 @@ Technology Prototypeの最小Scope決定
 - Prototype主要候補はFlutter UI + Native / C++ Audio LayerとJUCE / C++中心構成とする
 - Fully NativeはReference / Fallback候補として維持する
 - Web Technology + Native Wrapperはv0.1主要候補から一旦外す
+- PrototypeではFramework非依存の小さなC++ Reference Audio Coreを候補間で共有する方針を採る
+- Candidate固有のUI / Platform Audio Backendは共有Coreから分離する
+- Prototypeの最初のBring-up PlatformはAndroidを第一候補とするが、製品Platform優先順位の確定ではない
+- 最終Technology Decision前にiOSでもMust要件のSmoke Testを行う
 
 ## Primary References
 
@@ -134,14 +140,16 @@ Technology Prototypeの最小Scope決定
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/framework-comparison.md`
-4. `docs/platform-audio-requirements.md`
-5. `docs/performance-budget.md`
-6. `docs/audio-buffer-latency.md`
-7. `docs/audio-engine.md`
-8. `docs/architecture.md`
-9. `docs/decisions.md`
-10. `docs/roadmap.md`
+3. `docs/technology-prototype.md`
+4. `docs/prototype-implementation-plan.md`
+5. `docs/framework-comparison.md`
+6. `docs/platform-audio-requirements.md`
+7. `docs/performance-budget.md`
+8. `docs/audio-buffer-latency.md`
+9. `docs/audio-engine.md`
+10. `docs/architecture.md`
+11. `docs/decisions.md`
+12. `docs/roadmap.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
@@ -180,11 +188,12 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Flutter + Native AudioとJUCE / C++を同じ条件で比較できるTechnology Prototypeの最小Scopeと完了条件を定義する。
+Technology PrototypeのP0 / P1へ進む。
 
-その後の有力候補:
+1. `prototypes/` Skeletonを作成
+2. Common Reference Audio CoreのBuild方式を決定
+3. Flutter / JUCE両Candidateの最小Build Skeletonを作成
+4. 同一Android Reference DeviceでBuild / Launch
+5. Audio Callback Bring-upとActual Sample Rate / Callback Frames計測
 
-- Prototype実装順序 / Repository構造の決定
-- Sample Streaming / Caching
-- Resampling / Interpolation Quality
-- Effect Architecture / CPU Budget
+P0 / P1が比較可能になった後、P2のReference Audio Core + Diagnosticsへ進む。
