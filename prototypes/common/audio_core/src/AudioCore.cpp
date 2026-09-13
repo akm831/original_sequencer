@@ -11,22 +11,27 @@ void AudioCore::initialize(double sampleRate, std::uint32_t maxCallbackFrames) n
     }
     sampleRate_ = sampleRate;
     maxCallbackFrames_ = maxCallbackFrames;
-    lastCallbackFrames_ = 0;
-    renderedFrames_ = 0;
     initialized_ = true;
+
+    diagnosticSampleRate_.store(sampleRate, std::memory_order_relaxed);
+    diagnosticCallbackFrames_.store(0, std::memory_order_relaxed);
+    diagnosticRenderedFrames_.store(0, std::memory_order_relaxed);
+    diagnosticAudioRestartCount_.store(audioRestartCount_, std::memory_order_relaxed);
 }
 
 void AudioCore::reset() noexcept {
-    lastCallbackFrames_ = 0;
-    renderedFrames_ = 0;
+    diagnosticCallbackFrames_.store(0, std::memory_order_relaxed);
+    diagnosticRenderedFrames_.store(0, std::memory_order_relaxed);
 }
 
 void AudioCore::shutdown() noexcept {
     initialized_ = false;
     sampleRate_ = 0.0;
     maxCallbackFrames_ = 0;
-    lastCallbackFrames_ = 0;
-    renderedFrames_ = 0;
+
+    diagnosticSampleRate_.store(0.0, std::memory_order_relaxed);
+    diagnosticCallbackFrames_.store(0, std::memory_order_relaxed);
+    diagnosticRenderedFrames_.store(0, std::memory_order_relaxed);
 }
 
 void AudioCore::render(float* interleavedOutput,
@@ -34,8 +39,8 @@ void AudioCore::render(float* interleavedOutput,
                        std::uint32_t channelCount,
                        std::uint64_t callbackStartFrame) noexcept {
     (void)callbackStartFrame;
-    lastCallbackFrames_ = frameCount;
-    renderedFrames_ += frameCount;
+    diagnosticCallbackFrames_.store(frameCount, std::memory_order_relaxed);
+    diagnosticRenderedFrames_.fetch_add(frameCount, std::memory_order_relaxed);
 
     if (interleavedOutput == nullptr || channelCount == 0) {
         return;
@@ -47,10 +52,10 @@ void AudioCore::render(float* interleavedOutput,
 
 DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
     return DiagnosticsSnapshot{
-        .sampleRate = sampleRate_,
-        .callbackFrames = lastCallbackFrames_,
-        .renderedFrames = renderedFrames_,
-        .audioRestartCount = audioRestartCount_,
+        .sampleRate = diagnosticSampleRate_.load(std::memory_order_relaxed),
+        .callbackFrames = diagnosticCallbackFrames_.load(std::memory_order_relaxed),
+        .renderedFrames = diagnosticRenderedFrames_.load(std::memory_order_relaxed),
+        .audioRestartCount = diagnosticAudioRestartCount_.load(std::memory_order_relaxed),
     };
 }
 
