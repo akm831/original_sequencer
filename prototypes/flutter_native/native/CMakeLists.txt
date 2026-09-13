@@ -1,8 +1,12 @@
-add_library(original_sequencer_flutter_bridge
-    $<$<BOOL:${ANDROID}>:SHARED>
-    $<$<NOT:$<BOOL:${ANDROID}>>:STATIC>
-    src/prototype_bridge.cpp
-)
+if(ANDROID)
+    add_library(original_sequencer_flutter_bridge SHARED
+        src/prototype_bridge.cpp
+    )
+else()
+    add_library(original_sequencer_flutter_bridge STATIC
+        src/prototype_bridge.cpp
+    )
+endif()
 
 target_include_directories(original_sequencer_flutter_bridge PUBLIC include)
 target_link_libraries(original_sequencer_flutter_bridge PUBLIC original_sequencer_audio_core)
