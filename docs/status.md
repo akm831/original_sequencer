@@ -41,23 +41,27 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Scheduler / Audio Callback Queue境界
 - Pattern切替のAudio Thread Scheduling方針
 - Parameter LockのResolved Trigger State境界
+- Audio Buffer / Latency方針
+- Sequencer Lookahead / Live Input分離方針
+- Queue Capacity / Overflow Safety方針
+- Audio Device Restart / Clock再同期方針
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Audio Buffer / Latency
+Global Polyphony / Performance Budget
 
 次に検討する主題:
 
-- Audio Buffer Sizeの意味と初期Target
-- Userが感じるInput / Output Latencyの整理
-- Lookahead Scheduler Lengthとの関係
-- Underrun / Dropoutを避けるSafety Margin
-- Mobile端末での安定性と低LatencyのTrade-off
-- Audio Device Start / Restart時のClock同期
-- Queue容量とOverflow Policy
+- Global Voice Budgetの役割と初期Target
+- Sampler / Synth / Mixer / FXごとのCPU Budget
+- Track単位Voice LimitとGlobal Budgetの関係
+- Global Budget到達時のVoice Stealing / Degradation Policy
+- Callback Deadlineに対するSafety Margin
+- Performance Diagnosticsの合格基準
+- Framework / Audio Backend比較で測るBenchmark項目
 
-Common Voice Management / Audio Engine Schedulingの正本は`docs/voice-management.md`と`docs/audio-engine.md`です。
+Audio Schedulingの正本は`docs/audio-engine.md`、Buffer / Latencyの正本は`docs/audio-buffer-latency.md`です。
 
 ## Important Current Decisions
 
@@ -88,6 +92,14 @@ Common Voice Management / Audio Engine Schedulingの正本は`docs/voice-managem
 - ChokeはVoice Allocation前、Voice Stealingは必要時のAllocation Fallbackとして処理する
 - Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持する
 - Synth Polyも1 Trackあたり最大8 Voicesを暫定上限とし、Global Voice Budgetの具体値は実機計測後に決定する
+- Audio Logicを特定Buffer Sizeへ固定しない
+- 128 Frames程度をPreferred Target、256 Frames程度をStable Fallbackとする
+- 512 Frames以上でもCompatibility動作できる構造を維持する
+- Sequencer Lookaheadは約50 msを初期候補とするが、Live InputはそのLookaheadを待たない
+- Scheduler → Audio Thread QueueはBoundedとし、通常再生で十分なHeadroomを持つ
+- Queue OverflowでもAudio ThreadをBlockせず、Stop / Panic系を失いにくいFail-safeを持つ
+- Device Restart時はPending CommandとAudio Frame Originを再構築する
+- Project Musical TimeはSample Rate変更から独立させる
 
 ## Primary References
 
@@ -95,10 +107,10 @@ Common Voice Management / Audio Engine Schedulingの正本は`docs/voice-managem
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/audio-engine.md`
-4. `docs/voice-management.md`
-5. `docs/architecture.md`
-6. `docs/sequencer.md`
+3. `docs/audio-buffer-latency.md`
+4. `docs/audio-engine.md`
+5. `docs/voice-management.md`
+6. `docs/architecture.md`
 7. `docs/decisions.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
@@ -138,10 +150,11 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Audio Buffer / Latencyを仕様化する。
+Global Polyphony / Performance Budgetを仕様化する。
 
 その後の有力候補:
 
-- Global Polyphony / Performance Budget
 - Platform / Framework評価に必要なAudio要件整理
 - Framework / Language / Audio Backend候補比較
+- Sample Streaming / Caching
+- Resampling / Interpolation Quality
