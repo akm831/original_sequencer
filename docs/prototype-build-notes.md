@@ -27,7 +27,10 @@
 - Prototype repository では `pubspec.yaml` と UI source skeleton から開始
 - Dart側にAndroid用 `dart:ffi` wrapperを追加済み
 - Android build時は `original_sequencer_flutter_bridge` をshared libraryとして出力する構成に変更済み
-- Android runner / APKへのnative library packagingは未実装
+- Flutter Android runnerのGradle / Manifest / Kotlin Activityを追加済み
+- `prototypes/flutter_native/platform/android/CMakeLists.txt` をAndroid native buildの入口として追加し、Common Audio CoreとFlutter Native bridgeを同一CMake buildへ接続済み
+- `android/app/build.gradle.kts` から上記CMake入口を参照し、APKへ `liboriginal_sequencer_flutter_bridge.so` を組み込める構成にした
+- Gradle wrapper binaryとReference build machine上での実build / APK内容確認は未実施
 
 Patch version は実際に Reference build machine へ導入した SDK の `flutter --version` 出力を実機 build 結果と一緒に追記します。
 
@@ -60,13 +63,42 @@ P0 の host 側では次の smoke test を持ちます。
 
 2026-09-13 時点で、Repository と同じ CMake 構成を再現した host build で両 test が pass することを確認しました。
 
-今回のDart FFI追加後は、このSession環境にFlutter SDK / Android SDKが無いためAndroid実Buildは未確認です。既存Host C ABI contractを維持したまま、Androidでは同じbridge targetをshared library化する準備だけを行っています。
+今回のDart FFI / Android runner追加後は、このSession環境にFlutter SDK / Android SDKが無いためAndroid実Buildは未確認です。既存Host C ABI contractを維持したまま、AndroidではGradle → CMake → Common Core / Native bridgeまでのsource wiringを追加しています。
+
+## Flutter Android build wiring
+
+Android runnerの主な経路:
+
+```text
+Flutter app
+  ↓
+android/app/build.gradle.kts
+  ↓ externalNativeBuild
+prototypes/flutter_native/platform/android/CMakeLists.txt
+  ├─ prototypes/common/audio_core
+  └─ prototypes/flutter_native/native
+       ↓
+liboriginal_sequencer_flutter_bridge.so
+  ↓
+Dart DynamicLibrary.open(...)
+```
+
+Reference build machineでは次を確認します。
+
+```bash
+cd prototypes/flutter_native/app
+flutter pub get
+flutter build apk --debug
+```
+
+その後、APK内に `liboriginal_sequencer_flutter_bridge.so` が対象ABIごとに含まれることを確認し、実機launch時に画面上の `Native bridge: loaded` を確認します。
 
 ## 現時点で未確認のもの
 
 - Flutter Android app の実機 build / launch
-- Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging
+- Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging実確認
 - Dart FFI の実機 library load
+- Flutter Android Gradle wrapperのReference build machineでの生成 / 固定
 - JUCE Android app の実機 build / launch
 - Android NDK version の固定
 - Android compileSdk / minSdk / targetSdk の固定
