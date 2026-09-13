@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 
 namespace original_sequencer::prototype {
@@ -27,10 +28,13 @@ public:
 private:
     double sampleRate_ = 0.0;
     std::uint32_t maxCallbackFrames_ = 0;
-    std::uint32_t lastCallbackFrames_ = 0;
-    std::uint64_t renderedFrames_ = 0;
     std::uint32_t audioRestartCount_ = 0;
     bool initialized_ = false;
+
+    std::atomic<double> diagnosticSampleRate_{0.0};
+    std::atomic<std::uint32_t> diagnosticCallbackFrames_{0};
+    std::atomic<std::uint64_t> diagnosticRenderedFrames_{0};
+    std::atomic<std::uint32_t> diagnosticAudioRestartCount_{0};
 };
 
 }  // namespace original_sequencer::prototype
