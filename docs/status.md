@@ -66,6 +66,10 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Host `flutter_bridge_smoke` test
 - Flutter Dart FFI bridge source wiring
 - Android向けFlutter Native bridgeのshared library export準備
+- Flutter Android runner / Gradle / Manifest / Kotlin Activity source wiring
+- Flutter AndroidからCommon Core / Native bridgeへ入るCMake build path
+- Flutter Prototype用Android SDK / NDK version固定
+- JUCE CMake APIのAndroid非対応を確認し、AndroidはProjucer Android Studio exporterを使う方針へ修正
 
 ## Current Topic
 
@@ -78,15 +82,18 @@ Technology Prototype P0 / P1実装
 - Flutter Native側に薄いC ABI bridgeを実装済み
 - Flutter Dart側にAndroid用FFI wrapperを追加し、Native handle生成 / Diagnostics snapshot取得の配線を実装済み
 - Android build時はFlutter Native bridgeをshared libraryとして出力できるCMake構成に変更済み
+- Flutter Android runnerのsource wiringは追加済み
+- Flutter AndroidのReference値をcompileSdk 36 / minSdk 24 / targetSdk 36 / NDK 28.2.13676358へ固定済み
 - Flutter UI / JUCE UIのP0 source skeletonを作成済み
+- JUCE host / desktop CMake skeletonは維持し、AndroidはProjucer Android Studio exporterを使う方針へ修正済み
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
 
 次に進める主題:
 
-- Flutter Android runner / Native library packaging
-- JUCE Android build設定
-- Android NDK / compileSdk / minSdk / targetSdkの固定
-- 同一Android Reference DeviceでCandidate A/BをBuild / Launch
+- JUCE 9.0.2の最小`.jucer` Android exporter設定
+- Projucer生成側のAndroid SDK / NDK条件固定
+- Flutter / JUCEを同一Android Reference DeviceでBuild / Launch
+- Flutter APKへのNative library packagingとDart FFI実ロード確認
 - P1 Audio Device Callback Bring-up
 - Actual Sample Rate / Callback FramesのDiagnostics
 - SilenceまたはSineの安定出力
@@ -152,6 +159,8 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 - PrototypeではFramework非依存の小さなC++ Reference Audio Coreを候補間で共有する方針を採る
 - Candidate固有のUI / Platform Audio Backendは共有Coreから分離する
 - Prototypeの最初のBring-up PlatformはAndroidを第一候補とするが、製品Platform優先順位の確定ではない
+- Flutter PrototypeのAndroid SDK / NDKは比較再現性のため明示固定する
+- JUCE CandidateのAndroid buildはJUCE CMake APIではなくProjucer Android Studio exporterを使用する
 - 最終Technology Decision前にiOSでもMust要件のSmoke Testを行う
 
 ## Primary References
@@ -211,8 +220,8 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 Technology PrototypeのP0を実機Bring-upへ進め、そのままP1へ接続する。
 
-1. Flutter Android runnerを追加し、`liboriginal_sequencer_flutter_bridge.so`をAPKへ組み込んでDart FFIの実ロードを確認する
-2. JUCE CandidateのAndroid build設定を追加する
-3. Android toolchain versionをReference build環境で固定する
-4. 同一Android Reference DeviceでCandidate A/BをBuild / Launchする
+1. JUCE 9.0.2の最小`.jucer` Android exporter設定を追加し、Android Studio projectを再生成できる状態にする
+2. Projucer生成側をCandidate Aと同じAndroid SDK / NDK条件へ揃える
+3. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
+4. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
 5. Audio Callbackを起動し、Actual Sample Rate / Callback FramesをDiagnosticsへ接続する
