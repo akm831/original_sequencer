@@ -8,7 +8,7 @@
 
 Specification / Architecture
 
-まだ本格実装開始前です。Framework / Language / UI Toolkit / Audio Backendは未確定です。
+まだ本格実装開始前です。Framework / Language / UI Toolkit / Audio Backendは最終確定していません。
 
 ## Product Direction
 
@@ -51,27 +51,29 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Device Performance Profile方針
 - Platform / Audio Backend Requirements
 - Framework比較用Must / Should / Benchmark評価軸
+- Framework / Language / Audio Backend候補比較
+- Prototype候補をFlutter + Native AudioとJUCE / C++へ絞り込み
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Framework / Language / Audio Backend候補比較
+Technology Prototypeの最小Scope決定
 
 次に検討する主題:
 
-- Flutter + Native Audio構成
-- Fully Native構成
-- JUCE / C++中心構成
-- Web Technology + Native Audio Wrapper構成
-- iOS / Android / DesktopのPlatform Coverage
-- Touch-first UI開発効率
-- Native Bridge / Realtime境界
-- Sample-accurate Scheduling実現性
-- 128 Frames / Variable Buffer対応
-- 32 Voice Baseline / 64 Voice Stretch Benchmark実現性
-- Build / Debug / Maintenance Cost
+- Flutter UI + Native / C++ Audio Prototypeの境界
+- JUCE / C++ Prototypeの境界
+- 2候補で同じ機能を比較するための共通Vertical Slice
+- 最小Sampler / Oscillator実装
+- Sample-accurate Triggerの検証方法
+- Live Pad Latencyの計測方法
+- Callback Load / XRun / Voice CountのDiagnostics
+- 32 Voice Baseline / 64 Voice Stretchの共通Stress条件
+- Route Change / Interruption復帰試験
+- UI Gesture中のAudio Stability
+- Prototype完了 / 採用判断Gate
 
-候補比較の合格条件は`docs/platform-audio-requirements.md`を正本とします。
+候補比較の正本は`docs/framework-comparison.md`、合格条件は`docs/platform-audio-requirements.md`とします。
 
 ## Important Current Decisions
 
@@ -122,6 +124,9 @@ Framework / Language / Audio Backend候補比較
 - Framework選定ではUIの便利さだけでなくRealtime AudioのMust要件を先に評価する
 - Managed / Cross-platform UIを採用してもRealtime AudioをNative Layerへ分離できる構成は許容する
 - Framework候補は共通Reference BenchmarkとVertical Slice Prototypeで最終評価する
+- Prototype主要候補はFlutter UI + Native / C++ Audio LayerとJUCE / C++中心構成とする
+- Fully NativeはReference / Fallback候補として維持する
+- Web Technology + Native Wrapperはv0.1主要候補から一旦外す
 
 ## Primary References
 
@@ -129,13 +134,14 @@ Framework / Language / Audio Backend候補比較
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/platform-audio-requirements.md`
-4. `docs/performance-budget.md`
-5. `docs/audio-buffer-latency.md`
-6. `docs/audio-engine.md`
-7. `docs/architecture.md`
-8. `docs/decisions.md`
-9. `docs/roadmap.md`
+3. `docs/framework-comparison.md`
+4. `docs/platform-audio-requirements.md`
+5. `docs/performance-budget.md`
+6. `docs/audio-buffer-latency.md`
+7. `docs/audio-engine.md`
+8. `docs/architecture.md`
+9. `docs/decisions.md`
+10. `docs/roadmap.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
@@ -174,11 +180,11 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Framework / Language / Audio Backend候補を`docs/platform-audio-requirements.md`の共通評価軸で比較する。
+Flutter + Native AudioとJUCE / C++を同じ条件で比較できるTechnology Prototypeの最小Scopeと完了条件を定義する。
 
 その後の有力候補:
 
-- Technology Prototypeの最小Scope決定
+- Prototype実装順序 / Repository構造の決定
 - Sample Streaming / Caching
 - Resampling / Interpolation Quality
 - Effect Architecture / CPU Budget
