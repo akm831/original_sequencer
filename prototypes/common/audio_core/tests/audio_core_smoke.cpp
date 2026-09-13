@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <thread>
 
 int main() {
     using original_sequencer::prototype::AudioCore;
@@ -26,5 +27,30 @@ int main() {
     core.initialize(44100.0, 256);
     const auto restarted = core.diagnostics();
     assert(restarted.sampleRate == 44100.0);
+    assert(restarted.callbackFrames == 0);
+    assert(restarted.renderedFrames == 0);
     assert(restarted.audioRestartCount == 1);
+
+    std::thread renderThread([&core] {
+        for (std::uint64_t i = 0; i < 10000; ++i) {
+            core.render(nullptr, 64, 0, i * 64);
+        }
+    });
+
+    std::uint64_t lastRenderedFrames = 0;
+    for (;;) {
+        const auto snapshot = core.diagnostics();
+        assert(snapshot.sampleRate == 44100.0);
+        assert(snapshot.callbackFrames == 0 || snapshot.callbackFrames == 64);
+        assert(snapshot.renderedFrames >= lastRenderedFrames);
+        lastRenderedFrames = snapshot.renderedFrames;
+        if (snapshot.renderedFrames >= 640000) {
+            break;
+        }
+    }
+    renderThread.join();
+
+    const auto finalSnapshot = core.diagnostics();
+    assert(finalSnapshot.callbackFrames == 64);
+    assert(finalSnapshot.renderedFrames == 640000);
 }
