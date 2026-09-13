@@ -25,7 +25,9 @@
 - Stable family: Flutter 3.47
 - 2026-08-12 に Flutter 3.47 stable が公開済み
 - Prototype repository では `pubspec.yaml` と UI source skeleton から開始
-- Android runner / FFI wiring は P0 の次の実装単位で生成・固定する
+- Dart側にAndroid用 `dart:ffi` wrapperを追加済み
+- Android build時は `original_sequencer_flutter_bridge` をshared libraryとして出力する構成に変更済み
+- Android runner / APKへのnative library packagingは未実装
 
 Patch version は実際に Reference build machine へ導入した SDK の `flutter --version` 出力を実機 build 結果と一緒に追記します。
 
@@ -58,13 +60,16 @@ P0 の host 側では次の smoke test を持ちます。
 
 2026-09-13 時点で、Repository と同じ CMake 構成を再現した host build で両 test が pass することを確認しました。
 
+今回のDart FFI追加後は、このSession環境にFlutter SDK / Android SDKが無いためAndroid実Buildは未確認です。既存Host C ABI contractを維持したまま、Androidでは同じbridge targetをshared library化する準備だけを行っています。
+
 ## 現時点で未確認のもの
 
 - Flutter Android app の実機 build / launch
+- Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging
+- Dart FFI の実機 library load
 - JUCE Android app の実機 build / launch
 - Android NDK version の固定
 - Android compileSdk / minSdk / targetSdk の固定
-- Flutter FFI の Dart ↔ native 実配線
 - Oboe callback bring-up
 - JUCE audio callback bring-up
 - Actual sample rate / callback frames
