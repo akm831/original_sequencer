@@ -31,22 +31,27 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Project Persistence / Schema Versioning
 - Sample Asset Import / Portable Asset方針
 - Waveform Min / Max Peak Cache方針
+- Sampler Playback Voice Behavior
+- Sampler Retrigger / Overlap方針
+- Sampler Polyphony / Voice Stealing方針
+- Choke Group / Pattern切替時のSampler Voice方針
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Sampler Playback Voice Behavior
+Common Voice Management / Audio Engine Scheduling
 
 次に検討する主題:
 
-- One Shot / Gate / LoopのVoice Semantics
-- 同じSampleを連打した場合のRetrigger / Overlap
-- Sampler Polyphony
-- Choke Group
-- Voice Stealing
-- Pattern切替時のSampler Voiceとの整合性
+- Sampler / Synth Voiceの共通Interface
+- Note On / Note OffのSample-accurate Scheduling
+- Audio CallbackとScheduler Queueの責務分離
+- Global Polyphony LimitとEngineごとのVoice Budget
+- Choke / Voice Steal / All Notes Offの優先順位
+- Pattern切替EventをAudio Threadへ安全に渡す方法
+- Parameter LockをVoice生成時に解決する境界
 
-この検討はSamplerだけでなく、共通Audio EngineのVoice Management設計につながります。
+Sampler固有のPlayback Voice Semanticsは`docs/voice-management.md`で確定済みです。
 
 ## Important Current Decisions
 
@@ -64,6 +69,12 @@ Sampler Playback Voice Behavior
 - Project保存には明示的なschemaVersionを持たせる
 - Preset名だけでなく実際のEngine StateをProjectへ保存する
 - Missing SampleがあってもProject全体は可能な限り開く
+- Sampler Triggerは独立Voiceを生成し、同一Sample Retriggerは標準でOverlapを許可する
+- Samplerは1 Trackあたり最大8 Voicesを暫定上限とする
+- Voice StealingはRelease中の最古Voiceを優先し、その後は最古Voiceを選ぶ
+- Choke GroupはTrackをまたいでSampler Voiceへ適用できる
+- Pattern切替ではSampler Gate / LoopをReleaseへ移行し、One Shot Tailは原則Carryする
+- Sampler VoiceはTrigger時点の有効なEngine Stateを保持する
 
 ## Primary References
 
@@ -71,9 +82,11 @@ Sampler Playback Voice Behavior
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/sampler.md`
-4. `docs/persistence.md`
-5. `docs/decisions.md`
+3. `docs/voice-management.md`
+4. `docs/sequencer.md`
+5. `docs/pattern.md`
+6. `docs/sampler.md`
+7. `docs/decisions.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
@@ -112,13 +125,13 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Sampler Playback Voice Behaviorを仕様化する。
+Common Voice Management / Audio Engine Schedulingを仕様化する。
 
 その後の有力候補:
 
-- 共通Voice Management
-- Audio Engine Scheduling
 - Audio Buffer / Latency
+- Global Polyphony / Performance Budget
 - Platform / Framework評価に必要なAudio要件整理
+- Framework / Language / Audio Backend候補比較
 
 Current Topicが完了したら、このSectionを更新します。
