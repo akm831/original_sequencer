@@ -6,8 +6,11 @@ plugins {
 
 android {
     namespace = "com.originalsequencer.prototype"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+
+    // Prototype comparison must be reproducible across Candidate A/B.
+    // Keep these values explicit instead of inheriting moving Flutter defaults.
+    compileSdk = 36
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -20,8 +23,8 @@ android {
 
     defaultConfig {
         applicationId = "com.originalsequencer.prototype"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
