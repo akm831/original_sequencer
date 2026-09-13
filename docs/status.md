@@ -58,24 +58,40 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Technology Prototypeの共通Vertical Slice / Benchmark / 採用Gate
 - Prototype Repository構造 / Reference Audio Core境界 / Implementation Checkpoints
 - Audio / MIDI基礎Learning Note
+- `prototypes/` P0 Build Skeleton
+- C++20 / CMake 3.22のCommon Reference Audio Core build方式
+- Flutter Native C ABI skeleton
+- JUCE 9.0.2 CMake skeleton
+- Host `audio_core_smoke` test
+- Host `flutter_bridge_smoke` test
 
 ## Current Topic
 
-Technology Prototype P0 / P1実装準備
+Technology Prototype P0 / P1実装
+
+現在の到達点:
+
+- `prototypes/common/audio_core` はFramework非依存C++20 static libraryとしてbuild可能
+- 共通Coreはsilence render / lifecycle /最小Diagnosticsを実装済み
+- Flutter Native側に薄いC ABI bridgeを実装済み
+- Flutter UI / JUCE UIのP0 source skeletonを作成済み
+- Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
 
 次に進める主題:
 
-- `prototypes/` Repository Skeleton
-- Common Reference Audio CoreのBuild方式
-- Flutter Candidateの最小Build Skeleton
-- JUCE Candidateの最小Build Skeleton
-- Androidを第一Bring-up候補としてAudio Device Callbackを起動
+- Flutter Android runner / Dart FFI wiring
+- JUCE Android build設定
+- Android NDK / compileSdk / minSdk / targetSdkの固定
+- 同一Android Reference DeviceでCandidate A/BをBuild / Launch
+- P1 Audio Device Callback Bring-up
 - Actual Sample Rate / Callback FramesのDiagnostics
-- Framework / SDK Versionの固定とBuild Notes
+- SilenceまたはSineの安定出力
 
 PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造とCheckpointは`docs/prototype-implementation-plan.md`を正本とします。
 
 候補比較の基準は`docs/framework-comparison.md`、Hard Gateは`docs/platform-audio-requirements.md`とします。
+
+Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照します。
 
 ## Important Current Decisions
 
@@ -94,7 +110,7 @@ PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造
 - Preset名だけでなく実際のEngine StateをProjectへ保存する
 - Missing SampleがあってもProject全体は可能な限り開く
 - Sampler Triggerは独立Voiceを生成し、同一Sample Retriggerは標準でOverlapを許可する
-- Samplerは1 Trackあたり最大8 Voicesを暫定上限とする
+- Samplerは1Trackあたり最大8 Voicesを暫定上限とする
 - Voice StealingはRelease中の最古Voiceを優先し、その後は最古Voiceを選ぶ
 - Choke GroupはTrackをまたいでSampler Voiceへ適用できる
 - Pattern切替ではSampler Gate / LoopをReleaseへ移行し、One Shot Tailは原則Carryする
@@ -105,7 +121,7 @@ PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造
 - Parameter LockはAudio Thread外でEvent-localなResolved Stateへ解決する
 - ChokeはVoice Allocation前、Voice Stealingは必要時のAllocation Fallbackとして処理する
 - Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持する
-- Synth Polyも1 Trackあたり最大8 Voicesを暫定上限とする
+- Synth Polyも1Trackあたり最大8 Voicesを暫定上限とする
 - Audio Logicを特定Buffer Sizeへ固定しない
 - 128 Frames程度をPreferred Target、256 Frames程度をStable Fallbackとする
 - 512 Frames以上でもCompatibility動作できる構造を維持する
@@ -142,14 +158,15 @@ PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造
 2. `docs/status.md`
 3. `docs/technology-prototype.md`
 4. `docs/prototype-implementation-plan.md`
-5. `docs/framework-comparison.md`
-6. `docs/platform-audio-requirements.md`
-7. `docs/performance-budget.md`
-8. `docs/audio-buffer-latency.md`
-9. `docs/audio-engine.md`
-10. `docs/architecture.md`
-11. `docs/decisions.md`
-12. `docs/roadmap.md`
+5. `docs/prototype-build-notes.md`
+6. `docs/framework-comparison.md`
+7. `docs/platform-audio-requirements.md`
+8. `docs/performance-budget.md`
+9. `docs/audio-buffer-latency.md`
+10. `docs/audio-engine.md`
+11. `docs/architecture.md`
+12. `docs/decisions.md`
+13. `docs/roadmap.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
@@ -188,12 +205,12 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Technology PrototypeのP0 / P1へ進む。
+Technology PrototypeのP0を実機Bring-upへ進め、そのままP1へ接続する。
 
-1. `prototypes/` Skeletonを作成
-2. Common Reference Audio CoreのBuild方式を決定
-3. Flutter / JUCE両Candidateの最小Build Skeletonを作成
-4. 同一Android Reference DeviceでBuild / Launch
-5. Audio Callback Bring-upとActual Sample Rate / Callback Frames計測
+1. Flutter Android runnerを作成し、Dart FFIからNative bridgeをロードできるようにする
+2. JUCE CandidateのAndroid build設定を追加する
+3. Android toolchain versionをReference build環境で固定する
+4. 同一Android Reference DeviceでCandidate A/BをBuild / Launchする
+5. Audio Callbackを起動し、Actual Sample Rate / Callback FramesをDiagnosticsへ接続する
 
-P0 / P1が比較可能になった後、P2のReference Audio Core + Diagnosticsへ進む。
+実機P0 / P1が比較可能になった後、P2のReference Audio Core + Diagnosticsを拡張する。
