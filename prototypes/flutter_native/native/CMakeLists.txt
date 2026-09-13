@@ -1,4 +1,6 @@
-add_library(original_sequencer_flutter_bridge STATIC
+add_library(original_sequencer_flutter_bridge
+    $<$<BOOL:${ANDROID}>:SHARED>
+    $<$<NOT:$<BOOL:${ANDROID}>>:STATIC>
     src/prototype_bridge.cpp
 )
 
