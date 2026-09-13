@@ -35,23 +35,29 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Sampler Retrigger / Overlap方針
 - Sampler Polyphony / Voice Stealing方針
 - Choke Group / Pattern切替時のSampler Voice方針
+- Common Voice Contract方針
+- Audio Engine Scheduling責務分離
+- Sample-accurate Scheduling方針
+- Scheduler / Audio Callback Queue境界
+- Pattern切替のAudio Thread Scheduling方針
+- Parameter LockのResolved Trigger State境界
 - Audio / MIDI基礎Learning Note
 
 ## Current Topic
 
-Common Voice Management / Audio Engine Scheduling
+Audio Buffer / Latency
 
 次に検討する主題:
 
-- Sampler / Synth Voiceの共通Interface
-- Note On / Note OffのSample-accurate Scheduling
-- Audio CallbackとScheduler Queueの責務分離
-- Global Polyphony LimitとEngineごとのVoice Budget
-- Choke / Voice Steal / All Notes Offの優先順位
-- Pattern切替EventをAudio Threadへ安全に渡す方法
-- Parameter LockをVoice生成時に解決する境界
+- Audio Buffer Sizeの意味と初期Target
+- Userが感じるInput / Output Latencyの整理
+- Lookahead Scheduler Lengthとの関係
+- Underrun / Dropoutを避けるSafety Margin
+- Mobile端末での安定性と低LatencyのTrade-off
+- Audio Device Start / Restart時のClock同期
+- Queue容量とOverflow Policy
 
-Sampler固有のPlayback Voice Semanticsは`docs/voice-management.md`で確定済みです。
+Common Voice Management / Audio Engine Schedulingの正本は`docs/voice-management.md`と`docs/audio-engine.md`です。
 
 ## Important Current Decisions
 
@@ -75,6 +81,13 @@ Sampler固有のPlayback Voice Semanticsは`docs/voice-management.md`で確定�
 - Choke GroupはTrackをまたいでSampler Voiceへ適用できる
 - Pattern切替ではSampler Gate / LoopをReleaseへ移行し、One Shot Tailは原則Carryする
 - Sampler VoiceはTrigger時点の有効なEngine Stateを保持する
+- SchedulerとAudio Callbackを分離し、LookaheadでTimestamp付きAudio Commandを準備する
+- Buffer内Eventは可能な限りSample Offset位置で実行する
+- Audio ThreadはUI / Project Model / File I/Oへ直接依存しない
+- Parameter LockはAudio Thread外でEvent-localなResolved Stateへ解決する
+- ChokeはVoice Allocation前、Voice Stealingは必要時のAllocation Fallbackとして処理する
+- Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持する
+- Synth Polyも1 Trackあたり最大8 Voicesを暫定上限とし、Global Voice Budgetの具体値は実機計測後に決定する
 
 ## Primary References
 
@@ -82,10 +95,10 @@ Sampler固有のPlayback Voice Semanticsは`docs/voice-management.md`で確定�
 
 1. `AGENTS.md`
 2. `docs/status.md`
-3. `docs/voice-management.md`
-4. `docs/sequencer.md`
-5. `docs/pattern.md`
-6. `docs/sampler.md`
+3. `docs/audio-engine.md`
+4. `docs/voice-management.md`
+5. `docs/architecture.md`
+6. `docs/sequencer.md`
 7. `docs/decisions.md`
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
@@ -125,13 +138,10 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Common Voice Management / Audio Engine Schedulingを仕様化する。
+Audio Buffer / Latencyを仕様化する。
 
 その後の有力候補:
 
-- Audio Buffer / Latency
 - Global Polyphony / Performance Budget
 - Platform / Framework評価に必要なAudio要件整理
 - Framework / Language / Audio Backend候補比較
-
-Current Topicが完了したら、このSectionを更新します。
