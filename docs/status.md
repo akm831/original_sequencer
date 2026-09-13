@@ -70,6 +70,10 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - Flutter AndroidからCommon Core / Native bridgeへ入るCMake build path
 - Flutter Prototype用Android SDK / NDK version固定
 - JUCE CMake APIのAndroid非対応を確認し、AndroidはProjucer Android Studio exporterを使う方針へ修正
+- JUCE 9.0.2の最小`.jucer` Android exporter設定
+- JUCE P1用`juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` module wiring
+- JUCE `AudioAppComponent`によるoutput-only Audio Device callback source wiring
+- JUCE Candidate側でActual Sample Rate / Callback Frames / Restart CountをUIへ渡すatomic diagnostics wiring
 
 ## Current Topic
 
@@ -86,17 +90,21 @@ Technology Prototype P0 / P1実装
 - Flutter AndroidのReference値をcompileSdk 36 / minSdk 24 / targetSdk 36 / NDK 28.2.13676358へ固定済み
 - Flutter UI / JUCE UIのP0 source skeletonを作成済み
 - JUCE host / desktop CMake skeletonは維持し、AndroidはProjucer Android Studio exporterを使う方針へ修正済み
+- JUCE Android再生成元の`SequencerPrototype.jucer`は追加済み
+- JUCE側は`AudioAppComponent`でP1 Audio Device callbackを起動するsource wiringへ進み、callback内ではsilenceを維持しつつCommon `AudioCore::render()`を呼ぶ構成にした
+- JUCEのActual Sample Rate / Callback Frames / Restart CountはCandidate側atomic snapshotから5 HzでUI表示する構成にした
+- Common `AudioCore::diagnostics()`のcross-thread snapshotはまだP2未対応なので、JUCE UIから直接読まない
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
 
 次に進める主題:
 
-- JUCE 9.0.2の最小`.jucer` Android exporter設定
-- Projucer生成側のAndroid SDK / NDK条件固定
+- JUCE 9.0.2 Projucerで`Builds/Android`を実生成
+- Projucer生成側のcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を実確認
 - Flutter / JUCEを同一Android Reference DeviceでBuild / Launch
 - Flutter APKへのNative library packagingとDart FFI実ロード確認
-- P1 Audio Device Callback Bring-up
-- Actual Sample Rate / Callback FramesのDiagnostics
-- SilenceまたはSineの安定出力
+- JUCE Audio Device callbackの実機継続動作とActual Sample Rate / Callback Frames確認
+- SilenceからSineの安定出力へ進める
+- P2でCommon Coreのthread-safe Diagnostics snapshot / Callback Load計測へ進む
 
 PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造とCheckpointは`docs/prototype-implementation-plan.md`を正本とします。
 
@@ -161,6 +169,8 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 - Prototypeの最初のBring-up PlatformはAndroidを第一候補とするが、製品Platform優先順位の確定ではない
 - Flutter PrototypeのAndroid SDK / NDKは比較再現性のため明示固定する
 - JUCE CandidateのAndroid buildはJUCE CMake APIではなくProjucer Android Studio exporterを使用する
+- JUCE P1ではUI ThreadとAudio Callbackの間で直接UI objectを共有せず、実機値表示は軽量snapshotを介す
+- Common Coreのcross-thread Diagnostics契約はP2で明示的に整備する
 - 最終Technology Decision前にiOSでもMust要件のSmoke Testを行う
 
 ## Primary References
@@ -218,10 +228,12 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Technology PrototypeのP0を実機Bring-upへ進め、そのままP1へ接続する。
+Technology PrototypeのP0を実機Bring-upへ進め、そのままP1を実機確認する。
 
-1. JUCE 9.0.2の最小`.jucer` Android exporter設定を追加し、Android Studio projectを再生成できる状態にする
-2. Projucer生成側をCandidate Aと同じAndroid SDK / NDK条件へ揃える
+1. JUCE 9.0.2 Projucerで`prototypes/juce/Builds/Android`を生成する
+2. 生成projectがcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を使うことを確認する
 3. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
 4. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
-5. Audio Callbackを起動し、Actual Sample Rate / Callback FramesをDiagnosticsへ接続する
+5. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
+6. 両候補でsilenceからsine outputへ進める
+7. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測を実装する
