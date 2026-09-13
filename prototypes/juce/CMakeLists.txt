@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
 project(original_sequencer_juce_prototype VERSION 0.0.1 LANGUAGES CXX)
 
+if(ANDROID)
+    message(FATAL_ERROR
+        "JUCE's CMake API does not support Android targets. "
+        "Use the Projucer/Android Studio path documented in prototypes/juce/README.md."
+    )
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
     JUCE
