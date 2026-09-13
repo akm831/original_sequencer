@@ -27,5 +27,6 @@ target_sources(original_sequencer_juce_app PRIVATE app/Main.cpp)
 target_compile_features(original_sequencer_juce_app PRIVATE cxx_std_20)
 target_link_libraries(original_sequencer_juce_app PRIVATE
     original_sequencer_audio_core
+    juce::juce_audio_utils
     juce::juce_gui_extra
 )
