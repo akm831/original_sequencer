@@ -69,6 +69,10 @@ Learning Noteは仕様の正本ではありません。仕様は各Domain Spec�
 
 Sequencerは特定のUI FrameworkやAudio Backendへ直接依存させないでください。
 
+製品Platformは段階的に展開します。現時点の優先方針は、Androidを第一ターゲット、Webを第二ターゲットとし、iOS / iPadOSおよびDesktop Nativeは後続候補とします。ただし、Sequencer Core / Project Model / Musical LogicをAndroid専用APIへ依存させず、将来のWebAssembly、iOS、Desktop展開を妨げない構造を維持してください。
+
+Platform固有のUI、Audio Device、Storage、MIDI等はAdapter / Backend側へ隔離し、Core Musical Modelへ混在させないでください。Web対応のためだけに初期実装を過度に抽象化する必要はありませんが、Platform固有実装をCoreの前提にしないでください。
+
 Trackは「ドラムTrack」「メロディTrack」と固定するのではなく、使用するAudio Engineを選択する構造にします。
 
 Stepのデータ構造は、将来のProbability、Micro Timing、Conditional Trigger、Repeat / Ratchet、Sample Lock、Parameter Lockを追加できるよう拡張可能にしてください。
