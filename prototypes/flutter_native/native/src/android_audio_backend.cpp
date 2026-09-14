@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <numbers>
 
 namespace original_sequencer::prototype::flutter_native {
@@ -30,7 +31,6 @@ bool AndroidAudioBackend::start() noexcept {
     builder.setFormat(oboe::AudioFormat::Float);
     builder.setChannelCount(oboe::ChannelCount::Stereo);
     builder.setDataCallback(this);
-    builder.setErrorCallback(this);
 
     std::shared_ptr<oboe::AudioStream> stream;
     const auto openResult = builder.openStream(stream);
@@ -102,10 +102,6 @@ oboe::DataCallbackResult AndroidAudioBackend::onAudioReady(oboe::AudioStream* au
 
     callbackStartFrame_ += frameCount;
     return oboe::DataCallbackResult::Continue;
-}
-
-void AndroidAudioBackend::onErrorAfterClose(oboe::AudioStream*, oboe::Result) {
-    stream_.reset();
 }
 
 }  // namespace original_sequencer::prototype::flutter_native
