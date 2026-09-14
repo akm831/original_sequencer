@@ -77,6 +77,10 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 - JUCE Android `.jucer` / 生成project設定を検査する`verify_android_export.py` preflight追加
 - Common `AudioCore::diagnostics()` のcross-thread atomic snapshot実装
 - Host smoke testでrender中のDiagnostics同時readを検証
+- JUCE 9.0.2 Projucerから`prototypes/juce/Builds/Android`を実生成
+- JUCE AndroidのC++20指定をrawな`-std=c++20` compiler flagではなく`CMAKE_CXX_STANDARD=20`へ整理
+- JUCE Android生成projectでSDK / NDK参照を修正し、NDK 28.2.13676358で`./gradlew assembleDebug`成功を確認
+- Native build cacheとProjucer生成物を`.gitignore`へ追加し、再生成可能なファイルをGit管理対象から分離
 
 ## Current Topic
 
@@ -100,18 +104,21 @@ Technology Prototype P0 / P1実機Bring-up + P2準備
 - `prototypes/juce/verify_android_export.py`で生成前の`.jucer`必須設定を検査でき、生成後は`--require-generated`でAndroid projectのSDK / source wiringを追加確認できる
 - Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
 - Common diagnosticsの同時read/writeはhost ThreadSanitizerでもdata raceなしを確認した
+- JUCE 9.0.2 ProjucerによるAndroid project実生成をローカルmacOS環境で確認済み
+- JUCE Android生成projectはC++20を`CMAKE_CXX_STANDARD=20`で指定し、C sourceへC++専用flagを誤適用しない構成へ修正済み
+- JUCE Android生成projectはNDK 28.2.13676358を使用して`./gradlew assembleDebug`が成功済み
+- JUCE Androidの実機Install / Launch、Audio Device callback継続動作、Actual Sample Rate / Callback Frames、実発音は未確認
+- `verify_android_export.py`は旧`extraCompilerFlags=-std=c++20`前提の検査を正しいC++ Language Standard設定へ追従させる必要がある
 - Callback Load計測などP2の残りは未実装
-- このSession環境にはJUCE source / Projucer / Android SDK / NDK / Android実機がないため、Projucer実生成と実機Build / Launchは未確認
 
 次に進める主題:
 
-- JUCE 9.0.2 Projucerで`Builds/Android`を実生成
-- `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiringを検査
-- Projucer生成側のcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を実確認
-- Flutter / JUCEを同一Android Reference DeviceでBuild / Launch
-- Flutter APKへのNative library packagingとDart FFI実ロード確認
-- JUCE Audio Device callbackの実機継続動作とActual Sample Rate / Callback Frames確認
-- SilenceからSineの安定出力へ進める
+- `verify_android_export.py`のC++20検査を、旧`extraCompilerFlags=-std=c++20`前提からProjucerのC++ Language Standard設定へ更新する
+- JUCE生成projectのcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を自動検査で再確認する
+- JUCE Android APKをReference DeviceへInstall / Launchする
+- JUCE Audio Device callbackの実機継続動作とActual Sample Rate / Callback Frames表示を確認する
+- Flutter側も同一Android Reference DeviceでBuild / Launchし、APKへのNative library packagingとDart FFI実ロードを確認する
+- 両候補でsilenceからsine outputへ進める
 - P2でCallback Load計測 / Audio Frame Timelineへ進む
 - P2 Common diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
 
@@ -237,14 +244,14 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Technology PrototypeのP0を実機Bring-upへ進め、そのままP1を実機確認する。
+Technology PrototypeのP0 Android build確認を完了し、P1の実機Bring-upへ進む。
 
-1. JUCE 9.0.2 Projucerで`prototypes/juce/Builds/Android`を生成する
-2. `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiringを検査する
-3. 生成projectがcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を使うことを確認する
-4. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
-5. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
-6. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
+1. `prototypes/juce/verify_android_export.py`のC++20検査をProjucerのC++ Language Standard設定へ追従させる
+2. `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiring / C++ standardを再検査する
+3. JUCE Android APKをReference DeviceへInstall / Launchする
+4. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
+5. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
+6. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
 7. 両候補でsilenceからsine outputへ進める
 8. P2でCallback Load計測 / Audio Frame Timelineを実装する
 9. Common Coreのthread-safe Diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
