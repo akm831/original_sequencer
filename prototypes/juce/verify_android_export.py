@@ -133,8 +133,10 @@ def contains_sdk(text: str, kind: str, value: str) -> bool:
     quoted_value = rf"[\"']?{re.escape(value)}[\"']?"
     patterns = [
         # Direct Gradle forms, e.g. `minSdk 24`, `compileSdkVersion 36`,
-        # or Kotlin/Groovy assignments such as `targetSdk = 36`.
+        # Kotlin/Groovy assignments such as `targetSdk = 36`, and the
+        # JUCE 9 Projucer form `compileSdk(36)`.
         rf"\b{name}\s*(?:=\s*)?{quoted_value}\b",
+        rf"\b{name}\s*\(\s*{quoted_value}\s*\)",
         # Projucer-generated projects may first pin the value in a helper
         # variable, e.g. `def minSdkVersionString = \"24\"`, then reference
         # that variable from the android block.
