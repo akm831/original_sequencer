@@ -13,6 +13,7 @@ from pathlib import Path
 EXPECTED_MIN_SDK = "24"
 EXPECTED_TARGET_SDK = "36"
 EXPECTED_NDK = "28.2.13676358"
+EXPECTED_CPP_STANDARD = "20"
 REQUIRED_MODULES = {"juce_audio_basics", "juce_audio_devices", "juce_audio_utils"}
 REQUIRED_COMPILE_FILES = {"app/Main.cpp", "../common/audio_core/src/AudioCore.cpp"}
 TEXT_SUFFIXES = {
@@ -52,6 +53,16 @@ def validate_jucer(jucer: Path, errors: list[str]) -> Path | None:
         fail(errors, f"Could not parse {jucer}: {exc}")
         return None
 
+    cpp_standard = root.get("cppLanguageStandard", "")
+    if cpp_standard == EXPECTED_CPP_STANDARD:
+        ok(f".jucer C++ language standard is C++{EXPECTED_CPP_STANDARD}")
+    else:
+        fail(
+            errors,
+            ".jucer cppLanguageStandard expected "
+            f"{EXPECTED_CPP_STANDARD!r}, got {cpp_standard!r}",
+        )
+
     exporter = root.find("./EXPORTFORMATS/ANDROIDSTUDIO")
     if exporter is None:
         fail(errors, "ANDROIDSTUDIO exporter is missing from SequencerPrototype.jucer")
@@ -68,12 +79,6 @@ def validate_jucer(jucer: Path, errors: list[str]) -> Path | None:
             ok(f".jucer {key}={expected}")
         else:
             fail(errors, f".jucer {key} expected {expected!r}, got {actual!r}")
-
-    flags = exporter.get("extraCompilerFlags", "")
-    if "-std=c++20" in flags:
-        ok(".jucer enables C++20")
-    else:
-        fail(errors, ".jucer extraCompilerFlags does not contain -std=c++20")
 
     header_path = normalized(exporter.get("headerPath"))
     if "../common/audio_core/include" in header_path:
@@ -120,11 +125,28 @@ def collect_generated_text(project_dir: Path) -> tuple[str, list[Path]]:
 
 def contains_sdk(text: str, kind: str, value: str) -> bool:
     patterns = {
-        "min": [rf"minSdk(?:Version)?\s*[= ]\s*{re.escape(value)}\b"],
-        "target": [rf"targetSdk(?:Version)?\s*[= ]\s*{re.escape(value)}\b"],
-        "compile": [rf"compileSdk(?:Version)?\s*[= ]\s*{re.escape(value)}\b"],
+        "min": [rf"minSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
+        "target": [rf"targetSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
+        "compile": [rf"compileSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
     }
     return any(re.search(pattern, text) for pattern in patterns[kind])
+
+
+def contains_cpp_standard(text: str, value: str) -> bool:
+    patterns = [
+        rf"CMAKE_CXX_STANDARD\s+(?:CACHE\s+STRING\s+)?{re.escape(value)}\b",
+        rf"CMAKE_CXX_STANDARD\s*=\s*{re.escape(value)}\b",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+def contains_ndk(text: str, value: str) -> bool:
+    patterns = [
+        rf"ndkVersion\s*(?:=\s*)?[\"']?{re.escape(value)}[\"']?",
+        rf"ndkVersionString\s*=\s*[\"']{re.escape(value)}[\"']",
+        rf"ANDROID_NDK_VERSION\s*(?:=|\s)\s*[\"']?{re.escape(value)}[\"']?",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
 
 
 def validate_generated(project_dir: Path, errors: list[str], expected_ndk: str) -> None:
@@ -145,6 +167,15 @@ def validate_generated(project_dir: Path, errors: list[str], expected_ndk: str) 
         else:
             fail(errors, f"Generated project does not visibly declare {kind} SDK {value}")
 
+    if contains_cpp_standard(text, EXPECTED_CPP_STANDARD):
+        ok(f"Generated project declares CMAKE_CXX_STANDARD {EXPECTED_CPP_STANDARD}")
+    else:
+        fail(
+            errors,
+            "Generated project does not visibly declare "
+            f"CMAKE_CXX_STANDARD {EXPECTED_CPP_STANDARD}",
+        )
+
     normalized_text = text.replace("\\", "/")
     if "Main.cpp" in normalized_text:
         ok("Generated project references Main.cpp")
@@ -164,13 +195,13 @@ def validate_generated(project_dir: Path, errors: list[str], expected_ndk: str) 
             "inspect compiler include paths during build"
         )
 
-    if expected_ndk in text:
+    if contains_ndk(text, expected_ndk):
         ok(f"Generated project pins NDK {expected_ndk}")
     else:
-        warn(
-            f"Generated project does not pin NDK {expected_ndk}. "
-            "Verify the selected NDK on the reference build machine "
-            "(or pin ndkVersion in the generated Gradle project)."
+        fail(
+            errors,
+            f"Generated project does not visibly pin NDK {expected_ndk}. "
+            "Regenerate or update the local Android project before building.",
         )
 
 
