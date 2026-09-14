@@ -22,6 +22,8 @@ typedef struct PrototypeDiagnostics {
 PROTOTYPE_FFI_EXPORT void* prototype_create(void);
 PROTOTYPE_FFI_EXPORT void prototype_destroy(void* handle);
 PROTOTYPE_FFI_EXPORT void prototype_initialize(void* handle, double sample_rate, uint32_t max_callback_frames);
+PROTOTYPE_FFI_EXPORT int32_t prototype_start_audio(void* handle);
+PROTOTYPE_FFI_EXPORT void prototype_stop_audio(void* handle);
 PROTOTYPE_FFI_EXPORT PrototypeDiagnostics prototype_get_diagnostics(void* handle);
 
 #ifdef __cplusplus
