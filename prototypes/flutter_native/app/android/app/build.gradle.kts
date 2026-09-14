@@ -12,15 +12,14 @@ android {
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
+kotlinOptions {
+    jvmTarget = JavaVersion.VERSION_17.toString()
+}
     defaultConfig {
         applicationId = "com.originalsequencer.prototype"
         minSdk = 24

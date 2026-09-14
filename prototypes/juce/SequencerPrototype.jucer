@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="OSqP01" name="SequencerPrototype" projectType="guiapp"
-              version="0.0.1" bundleIdentifier="com.originalsequencer.prototype"
-              companyName="original_sequencer" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+<JUCERPROJECT id="OSqP01" name="SequencerPrototype" projectType="guiapp" version="0.0.1"
+              bundleIdentifier="com.originalsequencer.prototype" companyName="original_sequencer"
+              useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
+              cppLanguageStandard="20">
   <MAINGROUP id="OSqMain" name="SequencerPrototype">
     <GROUP id="OSqApp" name="app">
       <FILE id="OSqMainCpp" name="Main.cpp" compile="1" resource="0" file="app/Main.cpp"/>
@@ -11,19 +11,15 @@
     <GROUP id="OSqCore" name="common_audio_core">
       <FILE id="OSqCoreCpp" name="AudioCore.cpp" compile="1" resource="0"
             file="../common/audio_core/src/AudioCore.cpp"/>
-      <FILE id="OSqCoreHdr" name="AudioCore.h" compile="0" resource="0"
-            file="../common/audio_core/include/original_sequencer/prototype/AudioCore.h"/>
+      <FILE id="OSqCoreHdr" name="AudioCore.h" compile="0" resource="0" file="../common/audio_core/include/original_sequencer/prototype/AudioCore.h"/>
     </GROUP>
   </MAINGROUP>
-
   <EXPORTFORMATS>
-    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="24"
-                   androidTargetSDK="36"
-                   extraCompilerFlags="-std=c++20"
+    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="24" androidTargetSDK="36"
                    headerPath="../common/audio_core/include">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" optimisation="1"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3"/>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" headerPath="../../../common/audio_core/include"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" headerPath="../../../common/audio_core/include"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../JUCE/modules"/>
@@ -35,13 +31,19 @@
         <MODULEPATH id="juce_graphics" path="../../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../JUCE/modules"/>
       </MODULEPATHS>
     </ANDROIDSTUDIO>
   </EXPORTFORMATS>
-
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
@@ -50,6 +52,5 @@
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
-
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
 </JUCERPROJECT>

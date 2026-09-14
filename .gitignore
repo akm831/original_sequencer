@@ -12,3 +12,10 @@ build/
 .idea/
 .vscode/
 .DS_Store
+
+# Native build caches
+**/.cxx/
+
+# JUCE / Projucer generated files
+prototypes/juce/Builds/
+prototypes/juce/JuceLibraryCode/
