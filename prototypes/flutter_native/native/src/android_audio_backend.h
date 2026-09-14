@@ -11,8 +11,7 @@
 
 namespace original_sequencer::prototype::flutter_native {
 
-class AndroidAudioBackend final : public oboe::AudioStreamDataCallback,
-                                  public oboe::AudioStreamErrorCallback {
+class AndroidAudioBackend final : public oboe::AudioStreamDataCallback {
 public:
     explicit AndroidAudioBackend(AudioCore& core) noexcept;
     ~AndroidAudioBackend() override;
@@ -26,8 +25,6 @@ public:
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* audioStream,
                                            void* audioData,
                                            std::int32_t numFrames) override;
-
-    void onErrorAfterClose(oboe::AudioStream* audioStream, oboe::Result error) override;
 
 private:
     AudioCore& core_;
