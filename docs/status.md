@@ -18,69 +18,31 @@ Touch-firstのGroovebox / Sequencerを設計中です。
 
 初期目標は約8 Tracksで、各TrackがSamplerまたはSynth Engineを選択します。Main SequencerはTR-styleの分かりやすい16-step Surfaceを維持しつつ、将来的にParameter Lock、Probability、Micro Timing、Independent Track Rate等へ拡張します。
 
+Platform展開はAndroidを第一ターゲット、Webを第二ターゲットとし、Core Musical LogicはPlatform固有APIへ依存させません。
+
 ## Recently Completed
 
-- Sequencer Core Model
-- 960 PPQN Timing方針
-- Velocity / Accent
-- Swing / Micro Timing方針
-- Step Resolution / Note Length / Tie / Legato
-- NOTE / CHORD / KEYBOARD入力方式
-- Sampler基本仕様
-- Synth v0.1基本仕様
-- Harmony / Chord拡張方針
-- Pattern構造 / Pattern切替
-- Project Persistence / Schema Versioning
-- Sample Asset Import / Portable Asset方針
-- Waveform Min / Max Peak Cache方針
-- Sampler Playback Voice Behavior
-- Sampler Retrigger / Overlap方針
-- Sampler Polyphony / Voice Stealing方針
-- Choke Group / Pattern切替時のSampler Voice方針
-- Common Voice Contract方針
-- Audio Engine Scheduling責務分離
-- Sample-accurate Scheduling方針
-- Scheduler / Audio Callback Queue境界
-- Pattern切替のAudio Thread Scheduling方針
-- Parameter LockのResolved Trigger State境界
-- Audio Buffer / Latency方針
-- Sequencer Lookahead / Live Input分離方針
-- Queue Capacity / Overflow Safety方針
-- Audio Device Restart / Clock再同期方針
-- Global Polyphony / Performance Budget方針
-- Callback Headroom / Performance Diagnostics方針
-- 32 Voice Baseline / 64 Voice Stretch Benchmark方針
-- Device Performance Profile方針
-- Platform / Audio Backend Requirements
-- Framework比較用Must / Should / Benchmark評価軸
-- Framework / Language / Audio Backend候補比較
-- Prototype候補をFlutter + Native AudioとJUCE / C++へ絞り込み
-- Technology Prototypeの共通Vertical Slice / Benchmark / 採用Gate
-- Prototype Repository構造 / Reference Audio Core境界 / Implementation Checkpoints
-- Audio / MIDI基礎Learning Note
-- `prototypes/` P0 Build Skeleton
-- C++20 / CMake 3.22のCommon Reference Audio Core build方式
-- Flutter Native C ABI skeleton
-- JUCE 9.0.2 CMake skeleton
-- Host `audio_core_smoke` test
-- Host `flutter_bridge_smoke` test
-- Flutter Dart FFI bridge source wiring
-- Android向けFlutter Native bridgeのshared library export準備
-- Flutter Android runner / Gradle / Manifest / Kotlin Activity source wiring
-- Flutter AndroidからCommon Core / Native bridgeへ入るCMake build path
-- Flutter Prototype用Android SDK / NDK version固定
-- JUCE CMake APIのAndroid非対応を確認し、AndroidはProjucer Android Studio exporterを使う方針へ修正
-- JUCE 9.0.2の最小`.jucer` Android exporter設定
-- JUCE P1用`juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` module wiring
-- JUCE `AudioAppComponent`によるoutput-only Audio Device callback source wiring
-- JUCE Candidate側でActual Sample Rate / Callback Frames / Restart CountをUIへ渡すatomic diagnostics wiring
-- JUCE Android `.jucer` / 生成project設定を検査する`verify_android_export.py` preflight追加
-- Common `AudioCore::diagnostics()` のcross-thread atomic snapshot実装
-- Host smoke testでrender中のDiagnostics同時readを検証
-- JUCE 9.0.2 Projucerから`prototypes/juce/Builds/Android`を実生成
-- JUCE AndroidのC++20指定をrawな`-std=c++20` compiler flagではなく`CMAKE_CXX_STANDARD=20`へ整理
-- JUCE Android生成projectでSDK / NDK参照を修正し、NDK 28.2.13676358で`./gradlew assembleDebug`成功を確認
-- Native build cacheとProjucer生成物を`.gitignore`へ追加し、再生成可能なファイルをGit管理対象から分離
+主要な仕様設計とTechnology Prototype準備は以下まで完了しています。
+
+- Sequencer / Pattern / Persistence / Sampler / Synth / Harmonyの基本仕様
+- 960 PPQN Timing、Sample-accurate Scheduling、Lookahead / Live Input分離
+- Audio Thread責務、Bounded Queue、Device Restart、Performance Budget方針
+- Flutter + Native AudioとJUCE / C++を主要Prototype候補として選定
+- Framework非依存C++20 Common Reference Audio Core
+- Host `audio_core_smoke` / `flutter_bridge_smoke`
+- Flutter Dart FFI / Android native bridge / Gradle / CMake wiring
+- Flutter Android Reference値をcompileSdk 36 / minSdk 24 / targetSdk 36 / NDK 28.2.13676358へ固定
+- JUCE 9.0.2 `.jucer` Android Studio exporter
+- JUCE `AudioAppComponent` output-only callbackとCommon Core render wiring
+- JUCE Actual Sample Rate / Callback Frames / Restart Countのatomic diagnostics wiring
+- Common `AudioCore::diagnostics()` のcross-thread atomic snapshot
+- Common diagnostics同時read/writeのhost ThreadSanitizer確認
+- JUCE 9.0.2 ProjucerからAndroid projectを実生成
+- JUCE Android C++20をraw `-std=c++20`ではなくProjucer `cppLanguageStandard=20` → generated `CMAKE_CXX_STANDARD=20`で指定
+- JUCE Android生成projectでSDK / NDK参照を修正し、NDK 28.2.13676358で`./gradlew assembleDebug`成功
+- Native build cacheとProjucer生成物を`.gitignore`へ追加
+- `verify_android_export.py`を現行Projucer設定へ追従し、`.jucer`の`cppLanguageStandard=20`と生成projectの`CMAKE_CXX_STANDARD=20`を検査するよう更新
+- `verify_android_export.py --require-generated`でmin / target / compile SDK、C++ standard、source wiring、NDK pinを機械検査できるよう強化
 
 ## Current Topic
 
@@ -88,33 +50,17 @@ Technology Prototype P0 / P1実機Bring-up + P2準備
 
 現在の到達点:
 
-- `prototypes/common/audio_core` はFramework非依存C++20 static libraryとしてbuild可能
-- 共通Coreはsilence render / lifecycle /最小Diagnosticsを実装済み
-- Common `AudioCore::diagnostics()` はAudio callback側更新値をatomic snapshotとしてUI側から非Blockingで取得できる形へ進めた
-- Flutter Native側に薄いC ABI bridgeを実装済み
-- Flutter Dart側にAndroid用FFI wrapperを追加し、Native handle生成 / Diagnostics snapshot取得の配線を実装済み
-- Android build時はFlutter Native bridgeをshared libraryとして出力できるCMake構成に変更済み
-- Flutter Android runnerのsource wiringは追加済み
-- Flutter AndroidのReference値をcompileSdk 36 / minSdk 24 / targetSdk 36 / NDK 28.2.13676358へ固定済み
-- Flutter UI / JUCE UIのP0 source skeletonを作成済み
-- JUCE host / desktop CMake skeletonは維持し、AndroidはProjucer Android Studio exporterを使う方針へ修正済み
-- JUCE Android再生成元の`SequencerPrototype.jucer`は追加済み
-- JUCE側は`AudioAppComponent`でP1 Audio Device callbackを起動するsource wiringへ進み、callback内ではsilenceを維持しつつCommon `AudioCore::render()`を呼ぶ構成にした
-- JUCEのActual Sample Rate / Callback Frames / Restart CountはCandidate側atomic snapshotから5 HzでUI表示する構成にした
-- `prototypes/juce/verify_android_export.py`で生成前の`.jucer`必須設定を検査でき、生成後は`--require-generated`でAndroid projectのSDK / source wiringを追加確認できる
-- Host smoke testでCommon CoreとFlutter C ABI境界を検証済み
-- Common diagnosticsの同時read/writeはhost ThreadSanitizerでもdata raceなしを確認した
-- JUCE 9.0.2 ProjucerによるAndroid project実生成をローカルmacOS環境で確認済み
-- JUCE Android生成projectはC++20を`CMAKE_CXX_STANDARD=20`で指定し、C sourceへC++専用flagを誤適用しない構成へ修正済み
-- JUCE Android生成projectはNDK 28.2.13676358を使用して`./gradlew assembleDebug`が成功済み
+- Common Audio Core、Flutter bridge、JUCE callback source wiringは実装済み
+- JUCE Android生成projectのGradle buildは成功済み
+- JUCE Android export preflightは現行のC++ Language Standard設定へ追従済み
+- 生成projectのSDK / C++20 / NDK / source wiringを`--require-generated`で再検査できる
 - JUCE Androidの実機Install / Launch、Audio Device callback継続動作、Actual Sample Rate / Callback Frames、実発音は未確認
-- `verify_android_export.py`は旧`extraCompilerFlags=-std=c++20`前提の検査を正しいC++ Language Standard設定へ追従させる必要がある
+- Flutter Androidの実機Build / Launch、APK内Native library packaging、Dart FFI実ロードも未確認
 - Callback Load計測などP2の残りは未実装
 
 次に進める主題:
 
-- `verify_android_export.py`のC++20検査を、旧`extraCompilerFlags=-std=c++20`前提からProjucerのC++ Language Standard設定へ更新する
-- JUCE生成projectのcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を自動検査で再確認する
+- Reference build machineで`python3 prototypes/juce/verify_android_export.py --require-generated`を実行してローカル生成projectを再検査する
 - JUCE Android APKをReference DeviceへInstall / Launchする
 - JUCE Audio Device callbackの実機継続動作とActual Sample Rate / Callback Frames表示を確認する
 - Flutter側も同一Android Reference DeviceでBuild / Launchし、APKへのNative library packagingとDart FFI実ロードを確認する
@@ -134,59 +80,20 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 - TrackがSampler / Synth等のEngineを選択する
 - v0.1 Main Gridは1 Step = 1/16 note
 - Timing内部目標は960 PPQN
-- Pattern切替は演奏中なら次のProject bar boundary
-- Patternは現仕様ではTracks / Engine State / Mixer Stateを所有する
-- Project BPMはGlobal
-- Imported Sampleは原則Project Assetへ取り込む
-- Samplerは絶対PathではなくStable Asset IDを参照する
-- Sample編集は原則非破壊
-- Waveform表示には再生成可能なMin / Max Peak Cacheを使う
-- Project保存には明示的なschemaVersionを持たせる
-- Preset名だけでなく実際のEngine StateをProjectへ保存する
-- Missing SampleがあってもProject全体は可能な限り開く
-- Sampler Triggerは独立Voiceを生成し、同一Sample Retriggerは標準でOverlapを許可する
-- Samplerは1Trackあたり最大8 Voicesを暫定上限とする
-- Voice StealingはRelease中の最古Voiceを優先し、その後は最古Voiceを選ぶ
-- Choke GroupはTrackをまたいでSampler Voiceへ適用できる
-- Pattern切替ではSampler Gate / LoopをReleaseへ移行し、One Shot Tailは原則Carryする
-- Sampler VoiceはTrigger時点の有効なEngine Stateを保持する
+- Audio ThreadはUI / Project Model / File I/Oへ直接依存しない
 - SchedulerとAudio Callbackを分離し、LookaheadでTimestamp付きAudio Commandを準備する
 - Buffer内Eventは可能な限りSample Offset位置で実行する
-- Audio ThreadはUI / Project Model / File I/Oへ直接依存しない
-- Parameter LockはAudio Thread外でEvent-localなResolved Stateへ解決する
-- ChokeはVoice Allocation前、Voice Stealingは必要時のAllocation Fallbackとして処理する
-- Common Voice ContractはLifecycleだけを共有し、Sampler / Synth固有DSP Stateは各Engine内部に保持する
-- Synth Polyも1Trackあたり最大8 Voicesを暫定上限とする
 - Audio Logicを特定Buffer Sizeへ固定しない
 - 128 Frames程度をPreferred Target、256 Frames程度をStable Fallbackとする
-- 512 Frames以上でもCompatibility動作できる構造を維持する
 - Sequencer Lookaheadは約50 msを初期候補とするが、Live InputはそのLookaheadを待たない
-- Scheduler → Audio Thread QueueはBoundedとし、通常再生で十分なHeadroomを持つ
-- Queue OverflowでもAudio ThreadをBlockせず、Stop / Panic系を失いにくいFail-safeを持つ
-- Device Restart時はPending CommandとAudio Frame Originを再構築する
-- Project Musical TimeはSample Rate変更から独立させる
-- Track Voice LimitとGlobal Safety Budgetを分離する
-- Engine構造は最大64 Active Voiceを表現可能にする
-- 32 Concurrent VoicesをBaseline Performance Target候補とする
-- 64 Light-to-Moderate VoicesをStretch Targetとする
-- Reference ProjectではCallback Load約50%以下をNormal Targetとする
-- 継続的に70〜80%以上へ張り付く状態はHeadroom不足として評価する
-- Global Budget到達はSafety Fallbackとし、通常時に頻発させない
-- Dynamic Quality Scalingはv0.1必須にしない
-- Device / Backend Performance ProfileはProjectへ保存しない
-- Framework選定ではUIの便利さだけでなくRealtime AudioのMust要件を先に評価する
-- Managed / Cross-platform UIを採用してもRealtime AudioをNative Layerへ分離できる構成は許容する
-- Framework候補は共通Reference BenchmarkとVertical Slice Prototypeで最終評価する
-- Prototype主要候補はFlutter UI + Native / C++ Audio LayerとJUCE / C++中心構成とする
-- Fully NativeはReference / Fallback候補として維持する
-- Web Technology + Native Wrapperはv0.1主要候補から一旦外す
-- PrototypeではFramework非依存の小さなC++ Reference Audio Coreを候補間で共有する方針を採る
+- Framework選定ではRealtime AudioのMust要件を先に評価する
+- Prototype主要候補はFlutter UI + Native / C++ Audio LayerとJUCE / C++中心構成
+- PrototypeではFramework非依存の小さなC++ Reference Audio Coreを候補間で共有する
 - Candidate固有のUI / Platform Audio Backendは共有Coreから分離する
-- Prototypeの最初のBring-up PlatformはAndroidを第一候補とするが、製品Platform優先順位の確定ではない
+- Androidを第一ターゲット、Webを第二ターゲットとし、CoreをAndroid専用APIへ依存させない
 - Flutter PrototypeのAndroid SDK / NDKは比較再現性のため明示固定する
 - JUCE CandidateのAndroid buildはJUCE CMake APIではなくProjucer Android Studio exporterを使用する
-- JUCE P1ではUI ThreadとAudio Callbackの間で直接UI objectを共有せず、実機値表示は軽量snapshotを介す
-- Common Coreのcross-thread Diagnosticsはatomic snapshotとしてP2準備を開始し、Callback Load等は引き続きP2で整備する
+- JUCE P1ではUI ThreadとAudio Callbackの間で直接UI objectを共有せず、軽量snapshotを介す
 - 最終Technology Decision前にiOSでもMust要件のSmoke Testを行う
 
 ## Primary References
@@ -209,8 +116,6 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 
 必要になった場合のみ、関連する詳細仕様を追加で読みます。
 
-全仕様を毎Session最初から要約し直す必要はありません。
-
 ## Learning Notes
 
 基礎知識は仕様書へ混ぜず、`docs/learning/`へ蓄積します。
@@ -219,20 +124,9 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 
 - `docs/learning/audio-midi-basics.md`
 
-今後、Audio Buffer / Latency、Bit Depth、dB、ADSR、Filter、Polyphony / Voice、PPQN等を必要に応じて追加します。
-
 ## Session Handoff Policy
 
-Chatが長くなった場合、巨大な引き継ぎPromptを作成しません。
-
-Session終了前に行うこと:
-
-1. 確定した仕様を該当する`docs/*.md`へ反映する
-2. 重要な判断を`docs/decisions.md`へ反映する
-3. 必要な基礎知識を`docs/learning/`へ反映する
-4. この`docs/status.md`のRecently Completed / Current Topic / Nextを更新する
-
-新しいSessionでは、原則としてGitHubをSource of Truthとして復元します。
+Chatが長くなった場合、巨大な引き継ぎPromptを作成しません。Session終了前にRepositoryを更新し、新しいSessionではGitHubをSource of Truthとして復元します。
 
 推奨する短い再開指示:
 
@@ -240,18 +134,15 @@ Session終了前に行うこと:
 original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.mdを確認し、GitHubの仕様を正本として現在地から再開してください。
 ```
 
-長大な会話履歴や手作業の引き継ぎSummaryへ依存しないことを原則とします。
-
 ## Next
 
 Technology PrototypeのP0 Android build確認を完了し、P1の実機Bring-upへ進む。
 
-1. `prototypes/juce/verify_android_export.py`のC++20検査をProjucerのC++ Language Standard設定へ追従させる
-2. `python3 prototypes/juce/verify_android_export.py --require-generated`で生成projectのSDK / source wiring / C++ standardを再検査する
-3. JUCE Android APKをReference DeviceへInstall / Launchする
-4. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
-5. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
-6. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
-7. 両候補でsilenceからsine outputへ進める
-8. P2でCallback Load計測 / Audio Frame Timelineを実装する
-9. Common Coreのthread-safe Diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
+1. Reference build machineで`python3 prototypes/juce/verify_android_export.py --require-generated`を実行する
+2. JUCE Android APKをReference DeviceへInstall / Launchする
+3. JUCE実機でAudio callback継続動作とActual Sample Rate / Callback Frames表示を確認する
+4. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
+5. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
+6. 両候補でsilenceからsine outputへ進める
+7. P2でCallback Load計測 / Audio Frame Timelineを実装する
+8. Common Coreのthread-safe Diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
