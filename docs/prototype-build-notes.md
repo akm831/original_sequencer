@@ -51,7 +51,8 @@ Reference Android values:
 - C++20はrawな`-std=c++20` compiler flagではなく、Projucer project rootの `cppLanguageStandard="20"` で指定する
 - Projucer生成後のAndroid projectでは `CMAKE_CXX_STANDARD 20` として反映されることを検査する
 - P1 callback bring-up用に `juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` modulesを追加済み
-- `app/Main.cpp` は `juce::AudioAppComponent` でoutput-only Audio Deviceを起動し、callback内でsilenceを維持しながらCommon `AudioCore::render()` を呼ぶ
+- `app/Main.cpp` は `juce::AudioAppComponent` でoutput-only Audio Deviceを起動し、callback内でCommon `AudioCore::render()` を呼ぶ
+- P1の実機Audio Path確認用に、JUCE callback側で220 Hz / amplitude 0.08の低音量sine test toneを出力する
 - Actual Sample Rate / Callback Frames / Restart CountはCandidate側atomic snapshotから5 HzでUI表示する
 - Audio callbackからUI objectへ直接アクセスしない
 - NDK 28.2.13676358はReference build machineへ導入し、生成project側でも利用versionを明示する
@@ -147,6 +148,7 @@ APK
 - `../common/audio_core/include` がheader search pathへ入る
 - `juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` が生成projectへ入る
 - 実機launch後、Audio callbackが継続して動きActual Sample Rate / Callback Framesが画面へ表示される
+- 220 Hzの低音量test toneが端末Audio Outputから安定して聞こえる
 
 実生成物はProjucer / Android Studio versionによって差分が大きくなりやすいため、`.jucer` と再生成手順を正本として管理し、`Builds/Android` 自体はGit管理対象にしません。
 
@@ -196,6 +198,7 @@ SDK、C++ standard、source wiring、NDK pinが期待値と一致しない場合
 - SDK / NDK参照をReference値へ合わせ、NDK 28.2.13676358で `./gradlew assembleDebug` 成功を確認済み
 - 生成物とNative build cacheは再生成可能なため `.gitignore` へ追加済み
 - `verify_android_export.py` は旧 `extraCompilerFlags=-std=c++20` 前提を廃止し、ProjucerのC++ Language Standard設定と生成後のCMake設定を検査するよう更新済み
+- P1実機Bring-upでAudio Device経路を耳でも確認できるよう、JUCE callbackへ220 Hz / amplitude 0.08のsine test toneを追加済み
 
 ## 現時点で未確認のもの
 
@@ -206,9 +209,10 @@ SDK、C++ standard、source wiring、NDK pinが期待値と一致しない場合
 - JUCE Android app の実機 install / launch
 - JUCE Audio Device callbackの実機継続動作
 - JUCE Actual Sample Rate / Callback Framesの実機値
+- JUCE 220 Hz sine test toneの実機発音
 - Oboe callback bring-up
 - Flutter CandidateのActual sample rate / callback frames
-- Sine output
+- Flutter Candidateのsine output
 - Callback Load計測
 - Device restart
 
