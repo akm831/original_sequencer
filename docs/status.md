@@ -44,29 +44,32 @@ Platform展開はAndroidを第一ターゲット、Webを第二ターゲット�
 - `verify_android_export.py`を現行Projucer設定へ追従し、`.jucer`の`cppLanguageStandard=20`と生成projectの`CMAKE_CXX_STANDARD=20`を検査するよう更新
 - `verify_android_export.py --require-generated`でmin / target / compile SDK、C++ standard、source wiring、NDK pinを機械検査できるよう強化
 - JUCE P1のAudio Device経路を耳でも確認できるよう、低音量220 Hz sine test outputを追加
+- Reference build machineで`verify_android_export.py --require-generated`がPASS
+- 220 Hz test tone追加後のJUCE Android `./gradlew assembleDebug`が成功
+- JUCE Android APKをReference DeviceへInstall / Launchし、端末Audio Outputから220 Hz test toneの実発音を確認
+- JUCE実機DiagnosticsでActual Sample Rate 48000 Hz / Callback Frames 96 / Restart Count 0を確認
 
 ## Current Topic
 
-Technology Prototype P0 / P1実機Bring-up + P2準備
+Technology Prototype P1比較継続 + P2準備
 
 現在の到達点:
 
 - Common Audio Core、Flutter bridge、JUCE callback source wiringは実装済み
-- JUCE Android生成projectのGradle buildは成功済み
-- JUCE Android export preflightは現行のC++ Language Standard設定へ追従済み
-- 生成projectのSDK / C++20 / NDK / source wiringを`--require-generated`で再検査できる
-- JUCE callback内に220 Hz / 8% amplitudeのP1 test toneを追加済み。ただし実機での発音は未確認
-- JUCE Androidの実機Install / Launch、Audio Device callback継続動作、Actual Sample Rate / Callback Frames、実発音は未確認
-- Flutter Androidの実機Build / Launch、APK内Native library packaging、Dart FFI実ロードも未確認
+- JUCE Android export preflightはReference設定でPASS済み
+- JUCE Android APKは220 Hz test toneを含む状態でGradle build成功済み
+- JUCE AndroidはReference Deviceで実機Install / Launch成功済み
+- JUCE Audio Device callbackは実機で動作し、220 Hz / 8% amplitude test toneの実発音を確認済み
+- JUCE実機値はActual Sample Rate 48000 Hz / Callback Frames 96 / Restart Count 0
+- JUCE P0とP1の基本Audio Bring-upは確認済み。ただしDevice Restart挙動や長時間安定性は別途確認対象
+- Flutter Androidの実機Build / Launch、APK内Native library packaging、Dart FFI実ロードは未確認
 - Callback Load計測などP2の残りは未実装
 
 次に進める主題:
 
-- Reference build machineで`python3 prototypes/juce/verify_android_export.py --require-generated`を実行してローカル生成projectを再検査する
-- JUCE Android APKをReference DeviceへInstall / Launchする
-- JUCE Audio Device callbackの実機継続動作、Actual Sample Rate / Callback Frames表示、220 Hz test toneの実発音を確認する
-- Flutter側も同一Android Reference DeviceでBuild / Launchし、APKへのNative library packagingとDart FFI実ロードを確認する
-- Flutter側のAudio Device callback bring-upと同等のsine outputへ進む
+- Flutter側を同一Android Reference DeviceでBuild / Launchし、APKへのNative library packagingとDart FFI実ロードを確認する
+- Flutter側のAudio Device callback bring-upとJUCEと同等のsine outputへ進む
+- JUCE / Flutter双方でDevice Restart挙動を検証する
 - P2でCallback Load計測 / Audio Frame Timelineへ進む
 - P2 Common diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
 
@@ -138,13 +141,13 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Technology PrototypeのP0 Android build確認を完了し、P1の実機Bring-upへ進む。
+JUCE AndroidのP0 / P1基本Bring-up確認を完了し、Flutter Candidateを同一Reference DeviceでP0 / P1比較可能な状態へ進める。
 
-1. Reference build machineで`python3 prototypes/juce/verify_android_export.py --require-generated`を実行する
-2. JUCE Android APKをReference DeviceへInstall / Launchする
-3. JUCE実機でAudio callback継続動作、Actual Sample Rate / Callback Frames表示、220 Hz test toneの発音を確認する
-4. Flutter / JUCEを同一Android Reference DeviceでBuild / Launchする
-5. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so`とDart FFI実ロードを確認する
-6. Flutter側もAudio Device callback + sine outputへ進める
+1. Flutter Android appをReference build machineでBuildする
+2. Flutter APK内の`liboriginal_sequencer_flutter_bridge.so` packagingを確認する
+3. Flutter Android APKを同一Reference DeviceへInstall / Launchする
+4. Dart FFI実ロードと画面上の`Native bridge: loaded`を確認する
+5. Flutter側もAudio Device callback + sine outputへ進める
+6. JUCE / Flutter双方でDevice Restart挙動を確認する
 7. P2でCallback Load計測 / Audio Frame Timelineを実装する
 8. Common Coreのthread-safe Diagnostics snapshotをFlutter / JUCE双方の低頻度UI表示へ統合する
