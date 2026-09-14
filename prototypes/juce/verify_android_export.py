@@ -124,12 +124,23 @@ def collect_generated_text(project_dir: Path) -> tuple[str, list[Path]]:
 
 
 def contains_sdk(text: str, kind: str, value: str) -> bool:
-    patterns = {
-        "min": [rf"minSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
-        "target": [rf"targetSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
-        "compile": [rf"compileSdk(?:Version)?\s*(?:=\s*)?{re.escape(value)}\b"],
+    names = {
+        "min": r"minSdk(?:Version)?",
+        "target": r"targetSdk(?:Version)?",
+        "compile": r"compileSdk(?:Version)?",
     }
-    return any(re.search(pattern, text) for pattern in patterns[kind])
+    name = names[kind]
+    quoted_value = rf"[\"']?{re.escape(value)}[\"']?"
+    patterns = [
+        # Direct Gradle forms, e.g. `minSdk 24`, `compileSdkVersion 36`,
+        # or Kotlin/Groovy assignments such as `targetSdk = 36`.
+        rf"\b{name}\s*(?:=\s*)?{quoted_value}\b",
+        # Projucer-generated projects may first pin the value in a helper
+        # variable, e.g. `def minSdkVersionString = \"24\"`, then reference
+        # that variable from the android block.
+        rf"\b{name}(?:String)?\s*=\s*{quoted_value}\b",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
 
 
 def contains_cpp_standard(text: str, value: str) -> bool:
