@@ -34,7 +34,10 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments += listOf("-DORIGINAL_SEQUENCER_BUILD_TESTS=OFF")
+                arguments += listOf(
+                    "-DORIGINAL_SEQUENCER_BUILD_TESTS=OFF",
+                    "-DANDROID_STL=c++_shared",
+                )
                 cppFlags += "-std=c++20"
             }
         }
