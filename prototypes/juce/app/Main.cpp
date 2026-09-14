@@ -5,16 +5,21 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 
 namespace {
 
+constexpr double kTestToneFrequencyHz = 220.0;
+constexpr float kTestToneAmplitude = 0.08F;
+constexpr double kTwoPi = 6.28318530717958647692;
+
 class MainComponent final : public juce::AudioAppComponent,
                             private juce::Timer {
 public:
     MainComponent() {
-        title.setText("JUCE/C++ — P1 audio callback", juce::dontSendNotification);
+        title.setText("JUCE/C++ — P1 audio callback + sine", juce::dontSendNotification);
         title.setJustificationType(juce::Justification::centred);
         addAndMakeVisible(title);
 
@@ -44,6 +49,10 @@ public:
         actualSampleRate.store(sampleRate, std::memory_order_relaxed);
         actualCallbackFrames.store(0, std::memory_order_relaxed);
         callbackStartFrame = 0;
+        sinePhase = 0.0;
+        sinePhaseDelta = sampleRate > 0.0
+            ? (kTwoPi * kTestToneFrequencyHz) / sampleRate
+            : 0.0;
         audioCore.initialize(sampleRate, maxCallbackFrames);
     }
 
@@ -61,6 +70,7 @@ public:
 
         actualCallbackFrames.store(frameCount, std::memory_order_relaxed);
         audioCore.render(nullptr, frameCount, channelCount, callbackStartFrame);
+        renderTestTone(bufferToFill);
         callbackStartFrame += frameCount;
     }
 
@@ -68,15 +78,40 @@ public:
         audioCore.shutdown();
         actualCallbackFrames.store(0, std::memory_order_relaxed);
         callbackStartFrame = 0;
+        sinePhase = 0.0;
+        sinePhaseDelta = 0.0;
     }
 
     void resized() override {
         auto bounds = getLocalBounds().reduced(24);
         title.setBounds(bounds.removeFromTop(72));
-        diagnostics.setBounds(bounds.removeFromTop(96));
+        diagnostics.setBounds(bounds.removeFromTop(120));
     }
 
 private:
+    void renderTestTone(const juce::AudioSourceChannelInfo& bufferToFill) noexcept {
+        if (bufferToFill.buffer == nullptr || sinePhaseDelta <= 0.0) {
+            return;
+        }
+
+        const auto channelCount = bufferToFill.buffer->getNumChannels();
+        for (int sample = 0; sample < bufferToFill.numSamples; ++sample) {
+            const auto value = static_cast<float>(std::sin(sinePhase)) * kTestToneAmplitude;
+
+            for (int channel = 0; channel < channelCount; ++channel) {
+                bufferToFill.buffer->setSample(
+                    channel,
+                    bufferToFill.startSample + sample,
+                    value);
+            }
+
+            sinePhase += sinePhaseDelta;
+            if (sinePhase >= kTwoPi) {
+                sinePhase -= kTwoPi;
+            }
+        }
+    }
+
     void timerCallback() override {
         diagnostics.setText(
             "sampleRate: "
@@ -84,7 +119,8 @@ private:
                 + " Hz\ncallbackFrames: "
                 + juce::String(actualCallbackFrames.load(std::memory_order_relaxed))
                 + "\naudioRestartCount: "
-                + juce::String(audioRestartCount.load(std::memory_order_relaxed)),
+                + juce::String(audioRestartCount.load(std::memory_order_relaxed))
+                + "\ntestTone: 220 Hz @ 8%",
             juce::dontSendNotification);
     }
 
@@ -96,6 +132,8 @@ private:
     std::atomic<std::uint32_t> audioRestartCount{0};
     std::atomic<bool> audioWasPrepared{false};
     std::uint64_t callbackStartFrame = 0;
+    double sinePhase = 0.0;
+    double sinePhaseDelta = 0.0;
 };
 
 class MainWindow final : public juce::DocumentWindow {
