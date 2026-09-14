@@ -93,6 +93,7 @@ def main() -> int:
     check(contains(rf'version\s*=\s*"{re.escape(EXPECTED_CMAKE)}"', gradle), f"externalNativeBuild CMake is {EXPECTED_CMAKE}", f"externalNativeBuild CMake is not {EXPECTED_CMAKE}", errors)
     check("../../../platform/android/CMakeLists.txt" in gradle, "Gradle points at the prototype Android CMake entry", "Gradle does not point at ../../../platform/android/CMakeLists.txt", errors)
     check("prefab = true" in gradle, "Gradle enables Prefab for native dependencies", "Gradle does not enable Prefab", errors)
+    check('"-DANDROID_STL=c++_shared"' in gradle, "Gradle uses the shared C++ STL required by the Oboe Prefab setup", "Gradle does not explicitly use c++_shared", errors)
     check(f'implementation("com.google.oboe:oboe:{EXPECTED_OBOE}")' in gradle, f"Oboe is pinned to {EXPECTED_OBOE}", f"Oboe is not pinned to {EXPECTED_OBOE}", errors)
     check("../../../common/audio_core" in platform_cmake and "../../native" in platform_cmake, "Android CMake includes Common Audio Core and Flutter native bridge", "Android CMake does not include both Common Audio Core and Flutter native bridge", errors)
     check(contains(r"if\(ANDROID\)[\s\S]*add_library\(original_sequencer_flutter_bridge\s+SHARED", native_cmake), "Android bridge target is a shared library", "Android bridge target is not visibly declared as SHARED", errors)
