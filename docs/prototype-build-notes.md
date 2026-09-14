@@ -191,29 +191,32 @@ SDK、C++ standard、source wiring、NDK pinが期待値と一致しない場合
 
 この検証はAndroid buildそのものの代わりではありません。P0 / P1完了には、引き続き同一Reference Device上でBuild / Launchし、Audio callbackと実値Diagnosticsを確認する必要があります。
 
-## 2026-09-14: JUCE Android build確認
+## 2026-09-14: JUCE Android build / P1実機確認
 
 - JUCE 9.0.2 Projucerから `prototypes/juce/Builds/Android` を実生成済み
 - C++20指定を `CMAKE_CXX_STANDARD=20` へ整理済み
 - SDK / NDK参照をReference値へ合わせ、NDK 28.2.13676358で `./gradlew assembleDebug` 成功を確認済み
 - 生成物とNative build cacheは再生成可能なため `.gitignore` へ追加済み
 - `verify_android_export.py` は旧 `extraCompilerFlags=-std=c++20` 前提を廃止し、ProjucerのC++ Language Standard設定と生成後のCMake設定を検査するよう更新済み
+- `verify_android_export.py --require-generated` はReference build machineでPASSを確認済み
 - P1実機Bring-upでAudio Device経路を耳でも確認できるよう、JUCE callbackへ220 Hz / amplitude 0.08のsine test toneを追加済み
+- test tone追加後の `./gradlew assembleDebug` が成功
+- Debug APKをReference DeviceへInstall / Launchし、端末スピーカーから220 Hz test toneの実発音を確認
+- 実機Diagnostics: Actual Sample Rate = 48000 Hz
+- 実機Diagnostics: Callback Frames = 96
+- 実機Diagnostics: Audio Restart Count = 0（確認時点）
+- JUCE CandidateのP0とP1基本Audio Bring-upは実機で確認済み
 
 ## 現時点で未確認のもの
 
-- Reference build machine上で更新後の `verify_android_export.py --require-generated` を実行した結果
 - Flutter Android app の実機 build / launch
 - Flutter Android APKへの `liboriginal_sequencer_flutter_bridge.so` packaging実確認
 - Dart FFI の実機 library load
-- JUCE Android app の実機 install / launch
-- JUCE Audio Device callbackの実機継続動作
-- JUCE Actual Sample Rate / Callback Framesの実機値
-- JUCE 220 Hz sine test toneの実機発音
+- JUCE Audio Device callbackの長時間安定性
+- JUCE Device restart時の復帰挙動とRestart Count増加
 - Oboe callback bring-up
 - Flutter CandidateのActual sample rate / callback frames
 - Flutter Candidateのsine output
 - Callback Load計測
-- Device restart
 
-これらを確認するまでは P0 / P1 完了とはしません。
+JUCE側のP0 / P1基本Bring-upは確認済みですが、Candidate比較完了にはFlutter側の同等確認とDevice Restart / P2計測が残っています。
