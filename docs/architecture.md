@@ -228,8 +228,31 @@ Crop / Normalizeなどの破壊的処理を将来追加する場合は、明示�
 
 ## Platform戦略
 
-現時点ではPlatformを固定しません。Application / Sequencer Layerを共有しつつ、LatencyやDSP要件に応じてAudio BackendだけNative化できる構造を維持します。
+製品Platformは一度に全対応せず、段階的に展開します。
 
-Storage UIやProject Bundleの実装はPlatformごとに異なって構いませんが、Project SchemaとStable Asset Referenceの意味は共通にします。
+現時点の優先方針:
 
-具体的な技術選定はCore Musical Modelが十分固まってから行います。
+1. **Android** — 第一ターゲット。現在のTechnology Prototypeと初期製品動作の基準にする
+2. **Web** — 第二ターゲット。Sequencer Core / Musical Logicの再利用を前提に、WebAssemblyやWeb Audio等を用いたBrowser Prototypeを後続で検証する
+3. **iOS / iPadOS** — Android / Webの検証後に正式対応を判断する。特にiPadを有力な音楽制作Platform候補として残す
+4. **Windows / macOS Native** — Webでは不足する低Latency Audio、MIDI、Plugin連携、File / Device Integration等の必要性が明確になった時点で判断する
+
+この優先順位は「すべてのPlatformへ出す」という確定事項ではなく、開発負荷を抑えつつ展開可能性を残すための順序です。
+
+Architecture上は、Application / Sequencer Layer、Project Model、Musical Timing、Pattern / Track / Step Model、Harmony等を可能な限り共有します。これらのCore Musical LogicをAndroid SDK、Java / Kotlin API、特定のUI Toolkit、特定のAudio Device APIへ直接依存させません。
+
+Platform固有差分は主に次の境界へ隔離します。
+
+- UI / Interaction Adapter
+- Audio Device / Audio Backend
+- File / Storage Integration
+- MIDI / External Device Integration
+- App Lifecycle / Permissions
+
+AndroidではNative / C++ Audio Layer、WebではWebAssembly + Web Audio等のようにBackendが異なっても、可能な範囲で同じSequencer semanticsとProject Schemaを維持します。
+
+Storage UIやProject Bundleの実装はPlatformごとに異なって構いませんが、Project SchemaとStable Asset Referenceの意味は共通にします。これにより、将来的にはAndroidで作成したProjectをWebや他Platformで開ける方向も可能にします。
+
+ただし、将来のPlatform対応だけを理由に過度な抽象化を先行させません。現在のAndroid Prototypeを小さく検証可能なVertical Sliceとして進めつつ、CoreへPlatform固有依存を持ち込まないことを優先します。
+
+Framework / Audio Backendの最終選定は引き続きTechnology Prototypeの結果に基づいて判断します。
