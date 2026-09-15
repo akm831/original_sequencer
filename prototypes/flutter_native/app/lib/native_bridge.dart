@@ -4,13 +4,18 @@ import 'dart:io';
 final class _PrototypeDiagnosticsNative extends Struct {
   @Double()
   external double sampleRate;
-
   @Uint32()
   external int callbackFrames;
-
   @Uint64()
   external int renderedFrames;
-
+  @Uint64()
+  external int callbackStartFrame;
+  @Double()
+  external double callbackDurationUs;
+  @Double()
+  external double callbackLoad;
+  @Double()
+  external double callbackLoadPeak;
   @Uint32()
   external int audioRestartCount;
 }
@@ -27,62 +32,31 @@ typedef _GetDiagnosticsNative = _PrototypeDiagnosticsNative Function(Pointer<Voi
 typedef _GetDiagnosticsDart = _PrototypeDiagnosticsNative Function(Pointer<Void>);
 
 class PrototypeDiagnostics {
-  const PrototypeDiagnostics({
-    required this.sampleRate,
-    required this.callbackFrames,
-    required this.renderedFrames,
-    required this.audioRestartCount,
-  });
-
+  const PrototypeDiagnostics({required this.sampleRate, required this.callbackFrames, required this.renderedFrames, required this.callbackStartFrame, required this.callbackDurationUs, required this.callbackLoad, required this.callbackLoadPeak, required this.audioRestartCount});
   final double sampleRate;
   final int callbackFrames;
   final int renderedFrames;
+  final int callbackStartFrame;
+  final double callbackDurationUs;
+  final double callbackLoad;
+  final double callbackLoadPeak;
   final int audioRestartCount;
 }
 
 class PrototypeNativeBridge {
-  PrototypeNativeBridge._(
-    this._library,
-    this._handle,
-    this._destroy,
-    this._startAudio,
-    this._stopAudio,
-    this._getDiagnostics,
-  );
-
+  PrototypeNativeBridge._(this._library, this._handle, this._destroy, this._startAudio, this._stopAudio, this._getDiagnostics);
   factory PrototypeNativeBridge.open() {
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('The Flutter native audio bridge is currently wired for Android only.');
-    }
-
+    if (!Platform.isAndroid) throw UnsupportedError('The Flutter native audio bridge is currently wired for Android only.');
     final library = DynamicLibrary.open('liboriginal_sequencer_flutter_bridge.so');
     final create = library.lookupFunction<_CreateNative, _CreateDart>('prototype_create');
     final destroy = library.lookupFunction<_DestroyNative, _DestroyDart>('prototype_destroy');
-    final startAudio = library.lookupFunction<_StartAudioNative, _StartAudioDart>(
-      'prototype_start_audio',
-    );
-    final stopAudio = library.lookupFunction<_StopAudioNative, _StopAudioDart>(
-      'prototype_stop_audio',
-    );
-    final getDiagnostics = library.lookupFunction<_GetDiagnosticsNative, _GetDiagnosticsDart>(
-      'prototype_get_diagnostics',
-    );
+    final startAudio = library.lookupFunction<_StartAudioNative, _StartAudioDart>('prototype_start_audio');
+    final stopAudio = library.lookupFunction<_StopAudioNative, _StopAudioDart>('prototype_stop_audio');
+    final getDiagnostics = library.lookupFunction<_GetDiagnosticsNative, _GetDiagnosticsDart>('prototype_get_diagnostics');
     final handle = create();
-
-    if (handle == nullptr) {
-      throw StateError('prototype_create returned a null handle.');
-    }
-
-    return PrototypeNativeBridge._(
-      library,
-      handle,
-      destroy,
-      startAudio,
-      stopAudio,
-      getDiagnostics,
-    );
+    if (handle == nullptr) throw StateError('prototype_create returned a null handle.');
+    return PrototypeNativeBridge._(library, handle, destroy, startAudio, stopAudio, getDiagnostics);
   }
-
   final DynamicLibrary _library;
   final Pointer<Void> _handle;
   final _DestroyDart _destroy;
@@ -92,37 +66,17 @@ class PrototypeNativeBridge {
   bool _disposed = false;
 
   bool startAudio() {
-    if (_disposed) {
-      throw StateError('PrototypeNativeBridge has already been disposed.');
-    }
+    if (_disposed) throw StateError('PrototypeNativeBridge has already been disposed.');
     return _startAudio(_handle) != 0;
   }
-
-  void stopAudio() {
-    if (_disposed) {
-      return;
-    }
-    _stopAudio(_handle);
-  }
-
+  void stopAudio() { if (!_disposed) _stopAudio(_handle); }
   PrototypeDiagnostics diagnostics() {
-    if (_disposed) {
-      throw StateError('PrototypeNativeBridge has already been disposed.');
-    }
-
+    if (_disposed) throw StateError('PrototypeNativeBridge has already been disposed.');
     final native = _getDiagnostics(_handle);
-    return PrototypeDiagnostics(
-      sampleRate: native.sampleRate,
-      callbackFrames: native.callbackFrames,
-      renderedFrames: native.renderedFrames,
-      audioRestartCount: native.audioRestartCount,
-    );
+    return PrototypeDiagnostics(sampleRate: native.sampleRate, callbackFrames: native.callbackFrames, renderedFrames: native.renderedFrames, callbackStartFrame: native.callbackStartFrame, callbackDurationUs: native.callbackDurationUs, callbackLoad: native.callbackLoad, callbackLoadPeak: native.callbackLoadPeak, audioRestartCount: native.audioRestartCount);
   }
-
   void dispose() {
-    if (_disposed) {
-      return;
-    }
+    if (_disposed) return;
     _stopAudio(_handle);
     _destroy(_handle);
     _disposed = true;
