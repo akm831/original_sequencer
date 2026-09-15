@@ -6,7 +6,7 @@
 
 ## Phase
 
-Specification / Architecture → Technology Prototype準備
+Specification / Architecture → Technology Prototype
 
 製品本実装（Phase 1）はまだ開始していません。
 
@@ -22,8 +22,6 @@ Platform展開はAndroidを第一ターゲット、Webを第二ターゲット�
 
 ## Recently Completed
 
-主要な仕様設計とTechnology Prototype準備は以下まで完了しています。
-
 - Sequencer / Pattern / Persistence / Sampler / Synth / Harmonyの基本仕様
 - 960 PPQN Timing、Sample-accurate Scheduling、Lookahead / Live Input分離
 - Audio Thread責務、Bounded Queue、Device Restart、Performance Budget方針
@@ -36,41 +34,37 @@ Platform展開はAndroidを第一ターゲット、Webを第二ターゲット�
 - Flutter Android Debug APK build成功
 - Flutter Android APK内に`liboriginal_sequencer_flutter_bridge.so`がarm64-v8a / armeabi-v7a / x86_64向けに含まれることを確認
 - Flutter AndroidをReference DeviceでLaunchし、Dart FFI実ロードと`Native bridge: loaded`を確認
+- Flutter P1用Oboe 1.10.0 backend / start-stop FFI / 5 Hz Diagnostics UIを実装
+- Flutter Oboe callbackをCommon Audio Coreへ接続し、220 Hz / amplitude 0.08 test toneを出力
+- Flutter P1をReference Deviceで実機確認: `Audio stream: running`、Actual Sample Rate 48000 Hz、Callback Frames 96、Rendered Frames継続増加、Audio Restart Count 0、220 Hz test tone実発音
 - JUCE 9.0.2 Projucer Android Studio exporterとCommon Core wiring
 - JUCE Android C++20 / SDK / NDK / source wiring preflight
 - JUCE Android Gradle build成功
 - JUCE Android APKをReference DeviceへInstall / Launchし、220 Hz test toneの実発音を確認
 - JUCE実機DiagnosticsでActual Sample Rate 48000 Hz / Callback Frames 96 / Restart Count 0を確認
-- Flutter P1用にOboe 1.10.0 Prefab dependency / Android audio backend / start-stop FFI / 5 Hz Diagnostics UIを実装
-- Flutter Oboe callbackはCommon Audio Coreを通し、JUCEと同じ220 Hz / amplitude 0.08 test toneを出力する構成にした
 
 ## Current Topic
 
-Technology Prototype P1比較継続 + P2準備
+Technology Prototype: Device Lifecycle / P2 Realtime Diagnostics
 
 現在の到達点:
 
 - Common Audio Core、Flutter bridge、JUCE callback source wiringは実装済み
 - JUCE CandidateはAndroid実機でP0 / P1基本Bring-up確認済み
-- JUCE実機値はActual Sample Rate 48000 Hz / Callback Frames 96 / Restart Count 0
-- Flutter CandidateはAndroid runner / Gradle / CMake / Dart FFI wiring済み
-- Flutter CandidateはAndroid実機でP0完了: APK build / native library packaging / Dart FFI loadを確認済み
-- Flutter P0確認時はAudio Device未接続だったためDiagnosticsが0であることを確認済み
-- Flutter P1のOboe 1.10.0 callback / sine output / Diagnostics refresh実装はRepositoryへ追加済み
-- Flutter P1実装のReference build machine上での再buildと実機Audio確認は未確認
-- JUCE / Flutter双方のDevice Restart挙動と、P2 Callback Load / Audio Frame Timelineは未確認
+- Flutter CandidateもAndroid実機でP0 / P1基本Bring-up確認済み
+- 同一Reference Device上で両CandidateともActual Sample Rate 48000 Hz / Callback Frames 96 / Restart Count 0
+- 両Candidateとも220 Hz / amplitude 0.08 test toneの実発音を確認済み
+- FlutterはRendered Framesが継続増加し、Native callback → Common Audio Coreの連続動作を実機確認済み
+- Device Restart / Background-Foreground / Route Change時の安全な復帰は未確認
+- P2 Callback Load / Audio Frame Timelineは未確認
 
 次に進める主題:
 
-1. Reference build machineで最新mainをpullする
-2. 更新後のFlutter preflightを実行する
-3. Flutter Android appを再buildし、Oboe Prefab + C++ bridgeがcompile/linkできることを確認する
-4. Build後preflightでAPK packagingを再確認する
-5. Reference Deviceへ`flutter run`し、`Audio stream: running`を確認する
-6. 端末から220 Hz test toneが安定して聞こえることを確認する
-7. Flutter DiagnosticsでActual Sample Rate / Callback Frames / Rendered Frames増加 / Restart Countを記録する
-8. JUCE / Flutter双方でDevice Restart挙動を検証する
-9. P2でCallback Load計測 / Audio Frame Timelineへ進む
+1. Flutter / Oboe側にDevice Disconnect検出と安全な再openの最小Vertical Sliceを追加する
+2. Reference DeviceでHeadphone route change等を使って旧callback停止 → stream再open →新Sample Rate / Callback Frames取得を確認する
+3. Restart CountとFrame Timeline resetをDiagnosticsで確認する
+4. JUCE側でも同等のDevice Restart試験を行う
+5. P2としてCallback Duration / Callback Load / PeakとAudio Frame Timelineの計測へ進む
 
 PrototypeのScopeと合格条件は`docs/technology-prototype.md`、実装構造とCheckpointは`docs/prototype-implementation-plan.md`を正本とします。
 
@@ -119,8 +113,6 @@ Build手順とversion固定状況は`docs/prototype-build-notes.md`を参照し�
 12. `docs/decisions.md`
 13. `docs/roadmap.md`
 
-必要になった場合のみ、関連する詳細仕様を追加で読みます。
-
 ## Learning Notes
 
 基礎知識は仕様書へ混ぜず、`docs/learning/`へ蓄積します。
@@ -141,19 +133,6 @@ original_sequencerの続きを進めてください。AGENTS.mdとdocs/status.md
 
 ## Next
 
-Reference build machineで以下を順に実行し、Flutter CandidateのP1実機確認を進める。
+Flutter / OboeのDevice Restart検証を最小Vertical Sliceで追加する。Audio callback内ではstreamのclose/reopenを行わず、Oboe error callback / management側で安全に再openする。再起動後は旧Audio Frame Timelineを継続せず、新しいframe originを0から開始し、Actual Sample Rate / Callback Framesを再取得する。
 
-```bash
-cd /Volumes/DevSDK/Development/Projects/original_sequencer
-git pull --ff-only
-python3 prototypes/flutter_native/verify_android_setup.py
-cd prototypes/flutter_native/app
-flutter pub get
-flutter build apk --debug
-cd ../../..
-python3 prototypes/flutter_native/verify_android_setup.py --require-apk
-cd prototypes/flutter_native/app
-flutter run
-```
-
-実機画面で`Native bridge: loaded` / `Audio stream: running`を確認し、220 Hz test toneの実発音、Actual Sample Rate、Callback Frames、Rendered Frames増加、Audio Restart Countを記録する。
+実装後、Reference build machineでpreflight → debug APK build → packaging check → `flutter run`を行い、Headphone接続/切断等のroute changeでtest toneが復帰すること、`audioRestartCount`が増えること、`renderedFrames`が新timelineとして再開することを確認する。
