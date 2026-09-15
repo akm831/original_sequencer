@@ -1,3 +1,6 @@
+cmake_minimum_required(VERSION 3.22)
+project(original_sequencer_audio_core LANGUAGES CXX)
+
 add_library(original_sequencer_audio_core STATIC
     src/AudioCore.cpp
 )
