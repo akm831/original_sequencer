@@ -11,7 +11,12 @@ target_compile_features(original_sequencer_audio_core PUBLIC cxx_std_20)
 
 if(ORIGINAL_SEQUENCER_BUILD_TESTS)
     enable_testing()
+
     add_executable(audio_core_smoke tests/audio_core_smoke.cpp)
     target_link_libraries(audio_core_smoke PRIVATE original_sequencer_audio_core)
     add_test(NAME audio_core_smoke COMMAND audio_core_smoke)
+
+    add_executable(audio_command_queue_smoke tests/audio_command_queue_smoke.cpp)
+    target_link_libraries(audio_command_queue_smoke PRIVATE original_sequencer_audio_core)
+    add_test(NAME audio_command_queue_smoke COMMAND audio_command_queue_smoke)
 endif()
