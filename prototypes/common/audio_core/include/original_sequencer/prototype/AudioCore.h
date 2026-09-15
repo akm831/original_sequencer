@@ -31,8 +31,10 @@ public:
     [[nodiscard]] DiagnosticsSnapshot diagnostics() const noexcept;
 
 private:
-    static constexpr std::size_t kLoadHistogramBuckets = 101;
-    static constexpr double kLoadBucketWidth = 0.01; // 1 percentage point per bucket; final bucket is >=100%.
+    // 0.1 percentage point buckets from 0% through 100%; final bucket also contains >100%.
+    // This keeps sub-1% prototype loads visible without allocating or sorting on the audio thread.
+    static constexpr std::size_t kLoadHistogramBuckets = 1001;
+    static constexpr double kLoadBucketWidth = 0.001;
     void clearRealtimeDiagnostics() noexcept;
     [[nodiscard]] double loadPercentile(double percentile) const noexcept;
 
