@@ -16,6 +16,10 @@ typedef struct PrototypeDiagnostics {
     double sample_rate;
     uint32_t callback_frames;
     uint64_t rendered_frames;
+    uint64_t callback_start_frame;
+    double callback_duration_us;
+    double callback_load;
+    double callback_load_peak;
     uint32_t audio_restart_count;
 } PrototypeDiagnostics;
 
