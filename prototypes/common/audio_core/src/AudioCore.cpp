@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 
 namespace original_sequencer::prototype {
 
@@ -15,6 +16,8 @@ void AudioCore::clearRealtimeDiagnostics() noexcept {
     diagnosticCallbackDurationUs_.store(0.0, std::memory_order_relaxed);
     diagnosticCallbackLoad_.store(0.0, std::memory_order_relaxed);
     diagnosticCallbackLoadPeak_.store(0.0, std::memory_order_relaxed);
+    diagnosticTriggerCount_.store(0, std::memory_order_relaxed);
+    diagnosticLastTriggerOffset_.store(0, std::memory_order_relaxed);
     for (auto& bucket : loadHistogram_) bucket.store(0, std::memory_order_relaxed);
     loadHistogramSamples_.store(0, std::memory_order_relaxed);
 }
@@ -24,25 +27,64 @@ void AudioCore::initialize(double sampleRate, std::uint32_t maxCallbackFrames) n
     sampleRate_ = sampleRate;
     maxCallbackFrames_ = maxCallbackFrames;
     initialized_ = true;
+    commandQueue_.reset();
+    hasPendingCommand_ = false;
     diagnosticSampleRate_.store(sampleRate, std::memory_order_relaxed);
     clearRealtimeDiagnostics();
     diagnosticAudioRestartCount_.store(audioRestartCount_, std::memory_order_relaxed);
 }
 
-void AudioCore::reset() noexcept { clearRealtimeDiagnostics(); }
+void AudioCore::reset() noexcept {
+    commandQueue_.reset();
+    hasPendingCommand_ = false;
+    clearRealtimeDiagnostics();
+}
 
 void AudioCore::shutdown() noexcept {
     initialized_ = false;
     sampleRate_ = 0.0;
     maxCallbackFrames_ = 0;
+    commandQueue_.reset();
+    hasPendingCommand_ = false;
     diagnosticSampleRate_.store(0.0, std::memory_order_relaxed);
     clearRealtimeDiagnostics();
+}
+
+bool AudioCore::enqueueCommand(const AudioCommand& command) noexcept {
+    return commandQueue_.tryPush(command);
+}
+
+void AudioCore::consumeCommands(std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept {
+    if (frameCount == 0) return;
+    const auto callbackEndFrame = callbackStartFrame > std::numeric_limits<std::uint64_t>::max() - frameCount
+        ? std::numeric_limits<std::uint64_t>::max()
+        : callbackStartFrame + frameCount;
+
+    for (;;) {
+        if (!hasPendingCommand_) {
+            if (!commandQueue_.tryPop(pendingCommand_)) return;
+            hasPendingCommand_ = true;
+        }
+
+        if (pendingCommand_.targetFrame >= callbackEndFrame) return;
+
+        const auto offset = pendingCommand_.targetFrame <= callbackStartFrame
+            ? 0U
+            : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame);
+
+        if (pendingCommand_.type == AudioCommandType::trigger) {
+            diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
+            diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
+        }
+        hasPendingCommand_ = false;
+    }
 }
 
 void AudioCore::render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept {
     diagnosticCallbackStartFrame_.store(callbackStartFrame, std::memory_order_relaxed);
     diagnosticCallbackFrames_.store(frameCount, std::memory_order_relaxed);
     diagnosticRenderedFrames_.fetch_add(frameCount, std::memory_order_relaxed);
+    consumeCommands(callbackStartFrame, frameCount);
     if (interleavedOutput == nullptr || channelCount == 0) return;
     std::fill_n(interleavedOutput, static_cast<std::size_t>(frameCount) * channelCount, 0.0F);
 }
@@ -97,6 +139,11 @@ DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
         .callbackLoadP99 = loadPercentile(0.99),
         .callbackLoadPeak = diagnosticCallbackLoadPeak_.load(std::memory_order_relaxed),
         .audioRestartCount = diagnosticAudioRestartCount_.load(std::memory_order_relaxed),
+        .queueDepth = static_cast<std::uint32_t>(commandQueue_.depth() + (hasPendingCommand_ ? 1U : 0U)),
+        .queueHighWaterMark = static_cast<std::uint32_t>(commandQueue_.highWaterMark()),
+        .queueOverflowCount = commandQueue_.overflowCount(),
+        .triggerCount = diagnosticTriggerCount_.load(std::memory_order_relaxed),
+        .lastTriggerOffset = diagnosticLastTriggerOffset_.load(std::memory_order_relaxed),
     };
 }
 
