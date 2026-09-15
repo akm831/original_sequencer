@@ -20,10 +20,22 @@ AndroidAudioBackend::~AndroidAudioBackend() {
 }
 
 bool AndroidAudioBackend::start() noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    shouldRun_.store(true, std::memory_order_release);
+
     if (stream_) {
         return true;
     }
 
+    if (!openStreamLocked()) {
+        shouldRun_.store(false, std::memory_order_release);
+        return false;
+    }
+
+    return true;
+}
+
+bool AndroidAudioBackend::openStreamLocked() noexcept {
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
     builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
@@ -31,6 +43,7 @@ bool AndroidAudioBackend::start() noexcept {
     builder.setFormat(oboe::AudioFormat::Float);
     builder.setChannelCount(oboe::ChannelCount::Stereo);
     builder.setDataCallback(this);
+    builder.setErrorCallback(this);
 
     std::shared_ptr<oboe::AudioStream> stream;
     const auto openResult = builder.openStream(stream);
@@ -52,7 +65,6 @@ bool AndroidAudioBackend::start() noexcept {
     if (startResult != oboe::Result::OK) {
         stream_->close();
         stream_.reset();
-        core_.shutdown();
         return false;
     }
 
@@ -60,14 +72,36 @@ bool AndroidAudioBackend::start() noexcept {
 }
 
 void AndroidAudioBackend::stop() noexcept {
-    if (!stream_) {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    shouldRun_.store(false, std::memory_order_release);
+
+    if (stream_) {
+        stream_->requestStop();
+        stream_->close();
+        stream_.reset();
+    }
+
+    core_.shutdown();
+}
+
+void AndroidAudioBackend::onErrorAfterClose(oboe::AudioStream* audioStream, oboe::Result error) {
+    if (error != oboe::Result::ErrorDisconnected ||
+        !shouldRun_.load(std::memory_order_acquire)) {
         return;
     }
 
-    stream_->requestStop();
-    stream_->close();
-    stream_.reset();
-    core_.shutdown();
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    if (!shouldRun_.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    if (stream_ && stream_.get() == audioStream) {
+        stream_.reset();
+    }
+
+    // Oboe invokes this callback after the old stream has already been stopped and closed.
+    // Reopening here establishes a new device stream and intentionally resets the frame origin.
+    (void)openStreamLocked();
 }
 
 oboe::DataCallbackResult AndroidAudioBackend::onAudioReady(oboe::AudioStream* audioStream,
