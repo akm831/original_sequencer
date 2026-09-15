@@ -72,13 +72,16 @@ bool AndroidAudioBackend::openStreamLocked() noexcept {
 }
 
 void AndroidAudioBackend::stop() noexcept {
-    std::lock_guard<std::mutex> lock(streamMutex_);
-    shouldRun_.store(false, std::memory_order_release);
+    std::shared_ptr<oboe::AudioStream> streamToClose;
+    {
+        std::lock_guard<std::mutex> lock(streamMutex_);
+        shouldRun_.store(false, std::memory_order_release);
+        streamToClose = std::move(stream_);
+    }
 
-    if (stream_) {
-        stream_->requestStop();
-        stream_->close();
-        stream_.reset();
+    if (streamToClose) {
+        streamToClose->requestStop();
+        streamToClose->close();
     }
 
     core_.shutdown();
