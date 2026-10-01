@@ -103,3 +103,14 @@ actual sample rate / callback frames / restart countを表示
 6. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測へ進める
 
 生成物を無条件にRepositoryへ大量commitするのではなく、再生成元の`.jucer`と手順を正本として維持します。
+
+
+## 2026-10-02: P3 Scheduled Trigger / P2 Diagnostics
+
+連続Test Toneを止め、`Trigger 50 ms test burst`ボタンからCommon CoreへScheduled Triggerを投入します。Flutterと同じ50 ms / 220 Hz / 最大8%のMonophonic検証音です。Live Pad / Poly Voiceは後続Checkpointです。
+
+JUCEのPlanar AudioBufferはCommon CoreへChannel Pointerと`startSample`を渡します。Callback内でInterleaved変換用Memoryを確保せず、対象Sample領域だけをRenderします。Host testでAndroid Interleaved出力との一致を確認しています。
+
+Command投入と`prepareToPlay` / `releaseResources`をControl側Mutexで直列化します。通常の`getNextAudioBlock`はMutexを取得しません。Queue / Trigger Diagnosticsに加え、Flutterと同じCoreのCallback Load / P95 / P99 / Peak / Timelineを表示します。
+
+JUCE 9.0.2公式HeaderでC++構文検査は成功していますが、Link / Android build / 実機P2・P3は未実施です。既存のP1実機結果は過去の連続Test Toneに対する結果です。

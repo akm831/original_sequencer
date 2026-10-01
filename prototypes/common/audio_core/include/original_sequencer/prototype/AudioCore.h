@@ -40,6 +40,7 @@ public:
     // The single producer submits commands in nondecreasing targetFrame order.
     [[nodiscard]] bool enqueueCommand(const AudioCommand& command) noexcept;
     void render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept;
+    void renderPlanar(float* const* output, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame, std::uint32_t outputOffset = 0) noexcept;
     void recordCallbackTiming(std::uint64_t callbackStartFrame, std::uint32_t frameCount, double durationUs) noexcept;
     [[nodiscard]] DiagnosticsSnapshot diagnostics() const noexcept;
 
@@ -47,8 +48,15 @@ private:
     static constexpr std::size_t kLoadHistogramBuckets = 1001;
     static constexpr double kLoadBucketWidth = 0.001;
     void clearRealtimeDiagnostics() noexcept;
-    void consumeCommands(float* output, std::uint32_t channels, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept;
-    void renderBurst(float* output, std::uint32_t channels, std::uint32_t begin, std::uint32_t end) noexcept;
+    struct OutputView {
+        float* interleaved = nullptr;
+        float* const* planar = nullptr;
+        std::uint32_t channels = 0;
+        std::uint32_t offset = 0;
+    };
+    void renderOutput(const OutputView& output, std::uint32_t frames, std::uint64_t startFrame) noexcept;
+    void consumeCommands(const OutputView& output, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept;
+    void renderBurst(const OutputView& output, std::uint32_t begin, std::uint32_t end) noexcept;
     void clearBurst() noexcept;
 
     [[nodiscard]] double loadPercentile(double percentile) const noexcept;

@@ -35,6 +35,9 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - Android AdapterでCommand投入とCore LifecycleをControl側Mutexにより直列化（Audio CallbackはMutex不使用）
 - Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。Flutter SDK / NDK実build・実機試験は未実施
 
+- JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
+- JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
+
 ## Current Topic
 
 Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
@@ -54,14 +57,13 @@ Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
 - Flutterからの投入とDiagnostics表示は実装済み。従来の連続Test Toneを止め、通常は無音、ボタンで短いBurstを出す
 - P3の検証音はMonophonic / Retrigger方式。製品版Synth / Poly Voice実装ではなく、Live Padの低Latency経路とも区別する
 - Flutter SDK / Android NDKがこの作業環境にないため、Flutter analyze / APK build / 実機P3確認は未実施。Oboeヘッダーでの構文検査をAPK buildの代わりとは扱わない
-- JUCEは従来P1 Test Toneのまま。P3 UI・Burst出力・P2同等計測は今後接続する
+- JUCEのP3 UI・Burst出力・P2同等計測も実装済み。両候補とも連続Test Toneを止め、同じCoreの検証用Burstを出力。実機比較はまだ完了していない
 
 次に進める主題:
 
-1. JUCE側へ同じScheduled Trigger入力・Core Burst出力・Callback Timing計測を接続する
-2. SDKが使える環境でFlutter analyze / Android APK buildを確認する
-3. Android実機で両候補のP3発音 / Queue Diagnosticsを確認する
-4. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
+1. SDKが使える環境でFlutter analyze / 両候補Android buildを確認する
+2. Android実機で両候補のP3発音 / Queue Diagnostics / P2再測定を確認する
+3. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
 
 ## Important Current Decisions
 
@@ -102,4 +104,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-ユーザーの追加判断を必要としない次の実装はJUCEのP3 / P2接続。実機でのP3検証とDevice Restart route change試験は、SDK・実機が使える時点で実施する。技術選定はこれらの結果を揃えてから行う。
+P3の実装は両候補へ接続済み。次の検証はSDKによるBuildと実機P3 / P2再測定。続く実装はP4 Transport / 16-step Lookahead。技術選定は実機比較結果を揃えてから行う。

@@ -66,6 +66,28 @@ int main() {
     for (std::size_t i = 2912; i < expected.size(); ++i) assert(expected[i] == 0.0F);
     for (auto sample : expected) assert(std::isfinite(sample) && std::abs(sample) <= 0.08F);
 
+    // JUCE planar buffers use an offset into each channel. Compare with
+    // Android interleaved output and ensure samples outside the region survive.
+    AudioCore interleaved, planar;
+    interleaved.initialize(48000.0, 512);
+    planar.initialize(48000.0, 512);
+    assert(interleaved.enqueueCommand({AudioCommandType::trigger, 37, 0, 1.0F}));
+    assert(planar.enqueueCommand({AudioCommandType::trigger, 37, 0, 1.0F}));
+    std::array<float, 112> left{}, right{};
+    left.fill(1.0F);
+    right.fill(1.0F);
+    std::array<float*, 2> channels{left.data(), right.data()};
+    interleaved.render(output.data(), 96, 2, 0);
+    planar.renderPlanar(channels.data(), 96, 2, 0, 7);
+    for (std::size_t i = 0; i < 96; ++i) {
+        assert(left[i + 7] == output[i * 2]);
+        assert(right[i + 7] == output[i * 2 + 1]);
+    }
+    for (std::size_t i = 0; i < left.size(); ++i)
+        if (i < 7 || i >= 103) assert(left[i] == 1.0F && right[i] == 1.0F);
+    channels[1] = nullptr; // Disabled channel must not be dereferenced.
+    planar.renderPlanar(channels.data(), 96, 2, 96, 7);
+
     // A timestamp at UINT64_MAX still has a valid offset in this final buffer.
     core.reset();
     constexpr auto maximum = std::numeric_limits<std::uint64_t>::max();

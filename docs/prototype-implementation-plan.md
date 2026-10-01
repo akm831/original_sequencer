@@ -364,12 +364,13 @@ SPSCで成立するCommand経路から開始します。
 - 1 CallbackのCommand処理は最大257件。Callback終了Frameと同じ時刻は次のCallback、遅れたCommandはOffset 0で扱う
 - Queue DepthとPending有無は個別のAtomic Snapshotであり、UI表示は近似値。High Water MarkはQueue本体のみを対象にする
 - P3検証音は220 HzのCosineを線形Decayさせる50 msのMonophonic Burst。最大Amplitude 0.08、`value`は0〜1。既存Burst中のTriggerはRetriggerする。製品版Poly Voice仕様とは別
+- CoreはAndroid用InterleavedとJUCE用Planar出力を同じRender処理で扱う。PlanarはChannel PointerとBuffer内start offsetを受け取り、対象区間以外へ書き込まない。
 - CoreはCommand間のSample範囲を順にRenderし、指定Offsetから発音する。Null出力でもVoice時間は進行し、Lifecycle変更ではPendingと発音中のBurstを消去する
 - Flutterの`prototype_schedule_trigger(handle, delay_frames, value)`は投入時点のNative Audio Timelineを基準に、少なくとも`max(callbackFrames, 256)` FramesのLeadと指定Delayを足してScheduleする
 - Delayは0〜96000 Frames。Queue満杯、非有限または範囲外のvalue、以前のCommandより早いtarget、停止中のStreamは失敗として返す。部分的な成功を前提に自動再投入しない
 - Androidでは投入とStart / Restart / StopをControl側Mutexで直列化し、Close中のStart / 投入を拒否する。Audio CallbackはMutexを取得しない。Handle Destroyは所有側のみで行い、他のBridge callと並行させない
 - Flutter C ABIとDart Diagnosticsは同時に変更したため、Native LibraryとDartは同じRevisionで再Buildする
-- Host出力Sample検証とFlutter UI接続は実装済み。Flutter / Android build・実機発音確認、およびJUCE P3接続は未完了
+- Host出力Sample検証とFlutter UI接続は実装済み。Flutter / JUCEのP3 UI接続済み。両候補のAndroid build・実機発音確認は未完了
 
 ## Diagnostics計測位置
 

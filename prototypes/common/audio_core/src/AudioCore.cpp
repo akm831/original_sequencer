@@ -67,15 +67,17 @@ void AudioCore::clearBurst() noexcept {
     burstLength_ = 0;
 }
 
-void AudioCore::renderBurst(float* output, std::uint32_t channels, std::uint32_t begin, std::uint32_t end) noexcept {
+void AudioCore::renderBurst(const OutputView& output, std::uint32_t begin, std::uint32_t end) noexcept {
     if (sampleRate_ <= 0.0 || burstRemaining_ == 0) return;
     const auto increment = 2.0 * std::numbers::pi_v<double> * 220.0 / sampleRate_;
     for (auto frame = begin; frame < end && burstRemaining_ > 0; ++frame) {
         const auto envelope = static_cast<float>(burstRemaining_) / static_cast<float>(burstLength_);
         const auto value = static_cast<float>(std::cos(burstPhase_)) * burstAmplitude_ * envelope;
-        if (output != nullptr) {
-            for (std::uint32_t channel = 0; channel < channels; ++channel)
-                output[static_cast<std::size_t>(frame) * channels + channel] = value;
+        for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
+            if (output.interleaved != nullptr)
+                output.interleaved[static_cast<std::size_t>(frame) * output.channels + channel] = value;
+            else if (output.planar != nullptr && output.planar[channel] != nullptr)
+                output.planar[channel][static_cast<std::size_t>(output.offset) + frame] = value;
         }
         burstPhase_ += increment;
         if (burstPhase_ >= 2.0 * std::numbers::pi_v<double>) burstPhase_ -= 2.0 * std::numbers::pi_v<double>;
@@ -83,7 +85,7 @@ void AudioCore::renderBurst(float* output, std::uint32_t channels, std::uint32_t
     }
 }
 
-void AudioCore::consumeCommands(float* output, std::uint32_t channels, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept {
+void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept {
     if (frameCount == 0) return;
     std::uint32_t cursor = 0;
     // Bound work even if the producer keeps refilling during this callback.
@@ -97,7 +99,7 @@ void AudioCore::consumeCommands(float* output, std::uint32_t channels, std::uint
             && pendingCommand_.targetFrame - callbackStartFrame >= frameCount) break;
         const auto offset = pendingCommand_.targetFrame <= callbackStartFrame
             ? 0U : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame);
-        renderBurst(output, channels, cursor, offset);
+        renderBurst(output, cursor, offset);
         cursor = offset;
         diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
         diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
@@ -110,16 +112,30 @@ void AudioCore::consumeCommands(float* output, std::uint32_t channels, std::uint
         }
         hasPendingCommand_ = false;
     }
-    renderBurst(output, channels, cursor, frameCount);
+    renderBurst(output, cursor, frameCount);
 }
 
 void AudioCore::render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept {
+    renderOutput(OutputView{interleavedOutput, nullptr, channelCount, 0}, frameCount, callbackStartFrame);
+}
+
+void AudioCore::renderPlanar(float* const* output, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame, std::uint32_t outputOffset) noexcept {
+    renderOutput(OutputView{nullptr, output, channelCount, outputOffset}, frameCount, callbackStartFrame);
+}
+
+void AudioCore::renderOutput(const OutputView& output, std::uint32_t frameCount, std::uint64_t callbackStartFrame) noexcept {
     diagnosticCallbackStartFrame_.store(callbackStartFrame, std::memory_order_relaxed);
     diagnosticCallbackFrames_.store(frameCount, std::memory_order_relaxed);
     diagnosticRenderedFrames_.fetch_add(frameCount, std::memory_order_relaxed);
-    if (interleavedOutput != nullptr && channelCount > 0)
-        std::fill_n(interleavedOutput, static_cast<std::size_t>(frameCount) * channelCount, 0.0F);
-    consumeCommands(interleavedOutput, channelCount, callbackStartFrame, frameCount);
+    if (output.interleaved != nullptr)
+        std::fill_n(output.interleaved, static_cast<std::size_t>(frameCount) * output.channels, 0.0F);
+    else if (output.planar != nullptr) {
+        for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
+            if (output.planar[channel] != nullptr)
+                std::fill_n(output.planar[channel] + output.offset, frameCount, 0.0F);
+        }
+    }
+    consumeCommands(output, callbackStartFrame, frameCount);
 }
 
 void AudioCore::recordCallbackTiming(std::uint64_t callbackStartFrame, std::uint32_t frameCount, double durationUs) noexcept {
