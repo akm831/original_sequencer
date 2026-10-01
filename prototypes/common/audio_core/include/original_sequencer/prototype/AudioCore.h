@@ -47,7 +47,10 @@ private:
     static constexpr std::size_t kLoadHistogramBuckets = 1001;
     static constexpr double kLoadBucketWidth = 0.001;
     void clearRealtimeDiagnostics() noexcept;
-    void consumeCommands(std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept;
+    void consumeCommands(float* output, std::uint32_t channels, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept;
+    void renderBurst(float* output, std::uint32_t channels, std::uint32_t begin, std::uint32_t end) noexcept;
+    void clearBurst() noexcept;
+
     [[nodiscard]] double loadPercentile(double percentile) const noexcept;
 
     double sampleRate_ = 0.0;
@@ -57,6 +60,10 @@ private:
     AudioCommandQueue<kCommandQueueCapacity> commandQueue_{};
     std::atomic<bool> hasPendingCommand_{false};
     AudioCommand pendingCommand_{};
+    double burstPhase_ = 0.0;
+    float burstAmplitude_ = 0.0F;
+    std::uint32_t burstRemaining_ = 0;
+    std::uint32_t burstLength_ = 0;
 
     std::atomic<double> diagnosticSampleRate_{0.0};
     std::atomic<std::uint32_t> diagnosticCallbackFrames_{0};

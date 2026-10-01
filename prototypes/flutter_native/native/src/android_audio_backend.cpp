@@ -4,15 +4,9 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
-#include <numbers>
 
 namespace original_sequencer::prototype::flutter_native {
-namespace {
-constexpr double kTestToneFrequencyHz = 220.0;
-constexpr float kTestToneAmplitude = 0.08F;
-}
 
 AndroidAudioBackend::AndroidAudioBackend(AudioCore& core) noexcept : core_(core) {}
 
@@ -22,9 +16,12 @@ AndroidAudioBackend::~AndroidAudioBackend() {
 
 bool AndroidAudioBackend::start() noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
+    if (closing_) return false;
     shouldRun_.store(true, std::memory_order_release);
     if (stream_) return true;
     if (!openStreamLocked()) {
+        core_.shutdown();
+        triggerInput_.reset();
         shouldRun_.store(false, std::memory_order_release);
         return false;
     }
@@ -50,14 +47,16 @@ bool AndroidAudioBackend::openStreamLocked() noexcept {
     const auto maxCallbackFrames = static_cast<std::uint32_t>(
         std::max<std::int32_t>(framesPerBurst > 0 ? framesPerBurst * 2 : 0, 256));
     core_.initialize(static_cast<double>(sampleRate), maxCallbackFrames);
+    triggerInput_.reset();
     callbackStartFrame_ = 0;
-    sinePhase_ = 0.0;
     stream_ = std::move(stream);
 
     const auto startResult = stream_->requestStart();
     if (startResult != oboe::Result::OK) {
         stream_->close();
         stream_.reset();
+        core_.shutdown();
+        triggerInput_.reset();
         return false;
     }
     return true;
@@ -67,6 +66,8 @@ void AndroidAudioBackend::stop() noexcept {
     std::shared_ptr<oboe::AudioStream> streamToClose;
     {
         std::lock_guard<std::mutex> lock(streamMutex_);
+        if (closing_) return;
+        closing_ = true;
         shouldRun_.store(false, std::memory_order_release);
         streamToClose = std::move(stream_);
     }
@@ -74,15 +75,36 @@ void AndroidAudioBackend::stop() noexcept {
         streamToClose->requestStop();
         streamToClose->close();
     }
+    std::lock_guard<std::mutex> lock(streamMutex_);
     core_.shutdown();
+    triggerInput_.reset();
+    closing_ = false;
 }
 
 void AndroidAudioBackend::onErrorAfterClose(oboe::AudioStream* audioStream, oboe::Result error) {
     if (error != oboe::Result::ErrorDisconnected || !shouldRun_.load(std::memory_order_acquire)) return;
     std::lock_guard<std::mutex> lock(streamMutex_);
     if (!shouldRun_.load(std::memory_order_acquire)) return;
-    if (stream_ && stream_.get() == audioStream) stream_.reset();
-    (void)openStreamLocked();
+    if (closing_ || !stream_ || stream_.get() != audioStream) return;
+    stream_.reset();
+    if (!openStreamLocked()) {
+        core_.shutdown();
+        triggerInput_.reset();
+        shouldRun_.store(false, std::memory_order_release);
+    }
+}
+
+bool AndroidAudioBackend::scheduleTrigger(std::uint32_t delayFrames, float value) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    if (closing_ || !stream_ || !shouldRun_.load(std::memory_order_acquire)) return false;
+    return triggerInput_.submit(delayFrames, value);
+}
+
+void AndroidAudioBackend::initializeWhenStopped(double sampleRate, std::uint32_t maxCallbackFrames) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    if (closing_ || stream_) return;
+    core_.initialize(sampleRate, maxCallbackFrames);
+    triggerInput_.reset();
 }
 
 oboe::DataCallbackResult AndroidAudioBackend::onAudioReady(oboe::AudioStream* audioStream,
@@ -99,18 +121,6 @@ oboe::DataCallbackResult AndroidAudioBackend::onAudioReady(oboe::AudioStream* au
     auto* output = static_cast<float*>(audioData);
 
     core_.render(output, frameCount, channelCount, currentStartFrame);
-    const auto sampleRate = static_cast<double>(audioStream->getSampleRate());
-    if (sampleRate > 0.0 && channelCount > 0) {
-        const auto phaseIncrement = 2.0 * std::numbers::pi_v<double> * kTestToneFrequencyHz / sampleRate;
-        for (std::uint32_t frame = 0; frame < frameCount; ++frame) {
-            const auto sample = static_cast<float>(std::sin(sinePhase_)) * kTestToneAmplitude;
-            const auto frameOffset = static_cast<std::size_t>(frame) * channelCount;
-            for (std::uint32_t channel = 0; channel < channelCount; ++channel) output[frameOffset + channel] += sample;
-            sinePhase_ += phaseIncrement;
-            if (sinePhase_ >= 2.0 * std::numbers::pi_v<double>) sinePhase_ -= 2.0 * std::numbers::pi_v<double>;
-        }
-    }
-
     const auto callbackEnd = std::chrono::steady_clock::now();
     const auto durationUs = std::chrono::duration<double, std::micro>(callbackEnd - callbackBegin).count();
     core_.recordCallbackTiming(currentStartFrame, frameCount, durationUs);

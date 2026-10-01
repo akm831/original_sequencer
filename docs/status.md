@@ -30,6 +30,11 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - CallbackのCommand処理を最大257件に制限し、Producerの連続投入で処理が無限に延びることを防止
 - Host smoke tests 3本が成功。10万件の並行FIFO転送、Callback境界、可変Buffer、Restart時Pending破棄を確認
 
+- 2026-10-02: Common Coreへ指定Sample Offsetで始まる50 ms / 220 Hz検証用Burstを実装。Callback分割前後で波形が一致するHost testを追加
+- Flutter C ABI / DartへScheduled Trigger APIとQueue / Trigger Diagnosticsを接続し、P3検証ボタンを追加
+- Android AdapterでCommand投入とCore LifecycleをControl側Mutexにより直列化（Audio CallbackはMutex不使用）
+- Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。Flutter SDK / NDK実build・実機試験は未実施
+
 ## Current Topic
 
 Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
@@ -45,17 +50,18 @@ Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
 
 実装と確認の区別:
 
-- Common Coreは指定FrameからOffsetを計算し、Trigger Count / Last Offsetへ記録する。Trigger Commandによる発音はまだなく、Core出力はsilence
-- Flutter / JUCEのCallbackはCommon Coreを呼ぶが、UIからのCommand投入は未接続
-- Flutter C ABI / Dart DiagnosticsにはQueue / Trigger情報がまだ公開されていない
-- Queue / CallbackのHost検証は完了。Android実機のP3検証は未実施
+- Common Coreは指定FrameからOffsetを計算し、その位置から検証用Burstを実際に出力する。Host testで発音位置・Buffer境界・可変Buffer・Release後silenceを確認済み
+- Flutterからの投入とDiagnostics表示は実装済み。従来の連続Test Toneを止め、通常は無音、ボタンで短いBurstを出す
+- P3の検証音はMonophonic / Retrigger方式。製品版Synth / Poly Voice実装ではなく、Live Padの低Latency経路とも区別する
+- Flutter SDK / Android NDKがこの作業環境にないため、Flutter analyze / APK build / 実機P3確認は未実施。Oboeヘッダーでの構文検査をAPK buildの代わりとは扱わない
+- JUCEは従来P1 Test Toneのまま。P3 UI・Burst出力・P2同等計測は今後接続する
 
 次に進める主題:
 
-1. ProducerとCallbackが停止した状態でCore Lifecycleを変更するAdapter側の契約を確認する（Device Restart時を含む）
-2. Flutter C ABI / Dartへ最小Trigger投入APIとQueue / Trigger Diagnosticsを接続する
-3. 共通CoreにBuffer内Offsetで実際に発音する最小経路を追加し、出力SampleもHost testで確認する
-4. Android実機でP3を確認し、JUCE Candidateでも同じ経路を比較する
+1. JUCE側へ同じScheduled Trigger入力・Core Burst出力・Callback Timing計測を接続する
+2. SDKが使える環境でFlutter analyze / Android APK buildを確認する
+3. Android実機で両候補のP3発音 / Queue Diagnosticsを確認する
+4. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
 
 ## Important Current Decisions
 
@@ -96,4 +102,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-Flutter FFIへ接続する前に、Adapterの停止・RestartとCommand Producerの排他契約を確認する。その上でTrigger投入APIとDiagnostics表示を接続する。現状はOffset計算の確認までであり、Sample-accurateな発音の完了とは扱わない。Device Restart route change試験は機材準備後に戻って実施する。
+ユーザーの追加判断を必要としない次の実装はJUCEのP3 / P2接続。実機でのP3検証とDevice Restart route change試験は、SDK・実機が使える時点で実施する。技術選定はこれらの結果を揃えてから行う。
