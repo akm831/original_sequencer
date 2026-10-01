@@ -25,6 +25,11 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - Histogram解像度を0.1 percentage pointへ修正し、sub-1%負荷のPercentileを観測可能にした
 - Flutter P2 Reference Device baseline確定: 48000 Hz / callbackFrames 96 (min 96 / max 96) / current load約0.70% / p95 0.7% / p99 0.7% / peak 33.80%
 
+- Common Coreへ256容量SPSC Queue、timestamp付きCommand、Queue / Trigger Diagnosticsを実装済み（`9b2f873`まで。旧statusには未反映だった）
+- 2026-10-01: Diagnosticsのpending flagをatomic化し、Queue Depthの並行読み取りを容量範囲へ制限
+- CallbackのCommand処理を最大257件に制限し、Producerの連続投入で処理が無限に延びることを防止
+- Host smoke tests 3本が成功。10万件の並行FIFO転送、Callback境界、可変Buffer、Restart時Pending破棄を確認
+
 ## Current Topic
 
 Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
@@ -38,14 +43,19 @@ Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
 - Flutter Device Restartコードはbuild・通常再生確認済み。route change実機試験は機材準備後に行う
 - JUCE Device RestartとP2同等計測は未確認
 
+実装と確認の区別:
+
+- Common Coreは指定FrameからOffsetを計算し、Trigger Count / Last Offsetへ記録する。Trigger Commandによる発音はまだなく、Core出力はsilence
+- Flutter / JUCEのCallbackはCommon Coreを呼ぶが、UIからのCommand投入は未接続
+- Flutter C ABI / Dart DiagnosticsにはQueue / Trigger情報がまだ公開されていない
+- Queue / CallbackのHost検証は完了。Android実機のP3検証は未実施
+
 次に進める主題:
 
-1. Common Audio Coreへ固定容量SPSC Bounded Command Queueを追加する
-2. Queue Depth / High Water Mark / Overflow CountをDiagnosticsへ追加する
-3. Audio Thread側でtimestamp付きCommandをallocation / lockなしでconsumeする
-4. 同一Callback内の異なるSample OffsetでTriggerできる最小Vertical Sliceをhost testで確認する
-5. Flutter FFIから最小Trigger Commandを投入し、実機でSample-accurate Trigger経路を確認する
-6. 同じ構造をJUCE Candidateでも使用し比較する
+1. ProducerとCallbackが停止した状態でCore Lifecycleを変更するAdapter側の契約を確認する（Device Restart時を含む）
+2. Flutter C ABI / Dartへ最小Trigger投入APIとQueue / Trigger Diagnosticsを接続する
+3. 共通CoreにBuffer内Offsetで実際に発音する最小経路を追加し、出力SampleもHost testで確認する
+4. Android実機でP3を確認し、JUCE Candidateでも同じ経路を比較する
 
 ## Important Current Decisions
 
@@ -86,4 +96,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-Common Audio Coreへ最小SPSC Bounded Command Queueを追加する。最初はtimestamp付きTrigger CommandとQueue Diagnosticsに限定し、host smoke testでcapacity / FIFO / overflow / callback境界を検証してからFlutter FFIへ接続する。Device Restart route change試験は機材準備後に戻って実施する。
+Flutter FFIへ接続する前に、Adapterの停止・RestartとCommand Producerの排他契約を確認する。その上でTrigger投入APIとDiagnostics表示を接続する。現状はOffset計算の確認までであり、Sample-accurateな発音の完了とは扱わない。Device Restart route change試験は機材準備後に戻って実施する。

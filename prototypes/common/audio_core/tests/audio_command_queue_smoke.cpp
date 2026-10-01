@@ -1,6 +1,8 @@
 #include "original_sequencer/prototype/AudioCommandQueue.h"
 
 #include <cassert>
+#include <atomic>
+#include <thread>
 
 int main() {
     using original_sequencer::prototype::AudioCommand;
@@ -51,4 +53,29 @@ int main() {
     assert(queue.depth() == 0);
     assert(queue.highWaterMark() == 0);
     assert(queue.overflowCount() == 0);
+
+    // Exercise repeated ring reuse with a producer, consumer and UI observer.
+    constexpr std::uint64_t count = 100000;
+    std::atomic<bool> done{false};
+    std::thread producer([&] {
+        for (std::uint64_t i = 0; i < count; ++i) {
+            while (!queue.tryPush(AudioCommand{AudioCommandType::trigger, i, 0, 1.0F}))
+                std::this_thread::yield();
+        }
+    });
+    std::thread consumer([&] {
+        AudioCommand received;
+        for (std::uint64_t i = 0; i < count; ++i) {
+            while (!queue.tryPop(received)) std::this_thread::yield();
+            assert(received.targetFrame == i);
+        }
+        done.store(true, std::memory_order_release);
+    });
+    while (!done.load(std::memory_order_acquire)) {
+        assert(queue.depth() <= 4);
+        assert(queue.highWaterMark() <= 4);
+    }
+    producer.join();
+    consumer.join();
+    assert(queue.depth() == 0);
 }

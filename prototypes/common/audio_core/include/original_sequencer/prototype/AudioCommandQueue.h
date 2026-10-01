@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -25,6 +26,7 @@ class AudioCommandQueue {
     static_assert(std::is_trivially_copyable_v<AudioCommand>);
 
 public:
+    // One producer and one consumer; reset requires both to be stopped.
     [[nodiscard]] bool tryPush(const AudioCommand& command) noexcept {
         const auto write = writeIndex_.load(std::memory_order_relaxed);
         const auto read = readIndex_.load(std::memory_order_acquire);
@@ -50,9 +52,12 @@ public:
     }
 
     [[nodiscard]] std::size_t depth() const noexcept {
-        const auto write = writeIndex_.load(std::memory_order_acquire);
+        // Diagnostics are an approximate snapshot: the indices can move
+        // between loads. Read the consumer first to avoid unsigned underflow,
+        // then clamp an overestimate caused by concurrent producer progress.
         const auto read = readIndex_.load(std::memory_order_acquire);
-        return static_cast<std::size_t>(write - read);
+        const auto write = writeIndex_.load(std::memory_order_acquire);
+        return static_cast<std::size_t>(std::min<std::uint64_t>(write - read, Capacity));
     }
 
     [[nodiscard]] std::size_t highWaterMark() const noexcept {

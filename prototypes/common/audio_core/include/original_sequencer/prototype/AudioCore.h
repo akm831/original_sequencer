@@ -33,9 +33,11 @@ class AudioCore {
 public:
     static constexpr std::size_t kCommandQueueCapacity = 256;
 
+    // Lifecycle calls require the producer and audio callback to be stopped.
     void initialize(double sampleRate, std::uint32_t maxCallbackFrames) noexcept;
     void reset() noexcept;
     void shutdown() noexcept;
+    // The single producer submits commands in nondecreasing targetFrame order.
     [[nodiscard]] bool enqueueCommand(const AudioCommand& command) noexcept;
     void render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept;
     void recordCallbackTiming(std::uint64_t callbackStartFrame, std::uint32_t frameCount, double durationUs) noexcept;
@@ -53,7 +55,7 @@ private:
     std::uint32_t audioRestartCount_ = 0;
     bool initialized_ = false;
     AudioCommandQueue<kCommandQueueCapacity> commandQueue_{};
-    bool hasPendingCommand_ = false;
+    std::atomic<bool> hasPendingCommand_{false};
     AudioCommand pendingCommand_{};
 
     std::atomic<double> diagnosticSampleRate_{0.0};

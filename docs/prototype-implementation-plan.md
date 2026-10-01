@@ -355,6 +355,16 @@ SPSCで成立するCommand経路から開始します。
 
 複数Producerが必要になった場合は、Audio Thread側を複雑にする前にProducer統合層を検討します。
 
+### 現在のCommon Queue契約（P3途中）
+
+- Queue容量は256件。Audio Threadが先読みした未来のCommandを別に1件保持するため、DiagnosticsのDepthは最大257件
+- Producerは1つ、ConsumerはAudio Callbackのみ。投入順は`targetFrame`非減少。未来のCommandが先頭にある場合、後続Commandはその時刻まで待つ
+- Live Pad用のLow-latency経路は別途実装する。Scheduled Queueへ時刻を逆転させて投入しない
+- `initialize` / `reset` / `shutdown`はProducerとCallbackを止めた状態で呼ぶ。Atomic DiagnosticsはLifecycleとCommand投入を同時に行う安全性を保証しない
+- 1 CallbackのCommand処理は最大257件。Callback終了Frameと同じ時刻は次のCallback、遅れたCommandはOffset 0で扱う
+- Queue DepthとPending有無は個別のAtomic Snapshotであり、UI表示は近似値。High Water MarkはQueue本体のみを対象にする
+- 現在のTrigger処理はCount / Offset記録のみ。出力音のSample位置の検証と候補UIへの接続は未完了
+
 ## Diagnostics計測位置
 
 Callback LoadはPlatform callback入口〜Audio処理完了までを共通定義とします。

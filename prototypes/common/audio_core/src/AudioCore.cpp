@@ -60,7 +60,9 @@ void AudioCore::consumeCommands(std::uint64_t callbackStartFrame, std::uint32_t 
         ? std::numeric_limits<std::uint64_t>::max()
         : callbackStartFrame + frameCount;
 
-    for (;;) {
+    // Bound work even if the producer keeps refilling during this callback.
+    // At most one retained command plus one full queue is processed.
+    for (std::size_t processed = 0; processed < kCommandQueueCapacity + 1; ++processed) {
         if (!hasPendingCommand_) {
             if (!commandQueue_.tryPop(pendingCommand_)) return;
             hasPendingCommand_ = true;
@@ -139,7 +141,7 @@ DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
         .callbackLoadP99 = loadPercentile(0.99),
         .callbackLoadPeak = diagnosticCallbackLoadPeak_.load(std::memory_order_relaxed),
         .audioRestartCount = diagnosticAudioRestartCount_.load(std::memory_order_relaxed),
-        .queueDepth = static_cast<std::uint32_t>(commandQueue_.depth() + (hasPendingCommand_ ? 1U : 0U)),
+        .queueDepth = static_cast<std::uint32_t>(commandQueue_.depth() + (hasPendingCommand_.load(std::memory_order_relaxed) ? 1U : 0U)),
         .queueHighWaterMark = static_cast<std::uint32_t>(commandQueue_.highWaterMark()),
         .queueOverflowCount = commandQueue_.overflowCount(),
         .triggerCount = diagnosticTriggerCount_.load(std::memory_order_relaxed),
