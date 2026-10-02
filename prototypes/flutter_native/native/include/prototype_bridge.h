@@ -21,12 +21,24 @@ typedef struct PrototypeDiagnostics {
     double callback_load_p99;
     double callback_load_peak;
     uint32_t audio_restart_count;
+    uint32_t queue_depth;
+    uint32_t queue_high_water_mark;
+    uint64_t queue_overflow_count;
+    uint64_t trigger_count;
+    uint32_t last_trigger_offset;
 } PrototypeDiagnostics;
 PROTOTYPE_FFI_EXPORT void* prototype_create(void);
 PROTOTYPE_FFI_EXPORT void prototype_destroy(void* handle);
 PROTOTYPE_FFI_EXPORT void prototype_initialize(void* handle, double sample_rate, uint32_t max_callback_frames);
 PROTOTYPE_FFI_EXPORT int32_t prototype_start_audio(void* handle);
 PROTOTYPE_FFI_EXPORT void prototype_stop_audio(void* handle);
+// Scheduled P3 test input; rejects queue overflow, invalid value, stopped audio,
+// and timestamps earlier than the last accepted command. Not a Live Pad API.
+PROTOTYPE_FFI_EXPORT int32_t prototype_schedule_trigger(void* handle, uint32_t delay_frames, float value);
+#if !defined(__ANDROID__)
+// Headless host test path. Caller owns lifecycle and must not render concurrently.
+PROTOTYPE_FFI_EXPORT void prototype_render_for_test(void* handle, float* output, uint32_t frames, uint32_t channels);
+#endif
 PROTOTYPE_FFI_EXPORT PrototypeDiagnostics prototype_get_diagnostics(void* handle);
 #ifdef __cplusplus
 }

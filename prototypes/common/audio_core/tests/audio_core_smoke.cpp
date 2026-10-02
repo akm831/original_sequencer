@@ -51,6 +51,22 @@ int main() {
     assert(lateCommand.triggerCount == 1);
     assert(lateCommand.lastTriggerOffset == 0);
 
+    // Future commands remain pending across callbacks of different sizes.
+    core.reset();
+    assert(core.enqueueCommand(AudioCommand{AudioCommandType::trigger, 1128, 1, 1.0F}));
+    core.render(nullptr, 64, 0, 1000);
+    assert(core.diagnostics().queueDepth == 1);
+    assert(core.diagnostics().triggerCount == 0);
+    core.render(nullptr, 64, 0, 1064);
+    assert(core.diagnostics().triggerCount == 0);
+    core.render(nullptr, 32, 0, 1128);
+    assert(core.diagnostics().triggerCount == 1);
+    assert(core.diagnostics().lastTriggerOffset == 0);
+
+    // Pending commands must be discarded on restart, not merely queue entries.
+    assert(core.enqueueCommand(AudioCommand{AudioCommandType::trigger, 5000, 1, 1.0F}));
+    core.render(nullptr, 32, 0, 1160);
+    assert(core.diagnostics().queueDepth == 1);
     core.initialize(44100.0, 256);
     const auto restarted = core.diagnostics();
     assert(restarted.sampleRate == 44100.0);
@@ -60,6 +76,8 @@ int main() {
     assert(restarted.triggerCount == 0);
     assert(restarted.audioRestartCount == 1);
 
+    // Read diagnostics while the callback repeatedly retains a future command.
+    assert(core.enqueueCommand(AudioCommand{AudioCommandType::trigger, 1000000, 1, 1.0F}));
     std::thread renderThread([&core] {
         for (std::uint64_t i = 0; i < 10000; ++i) core.render(nullptr, 64, 0, i * 64);
     });
@@ -70,6 +88,7 @@ int main() {
         assert(snapshot.sampleRate == 44100.0);
         assert(snapshot.callbackFrames == 0 || snapshot.callbackFrames == 64);
         assert(snapshot.renderedFrames >= lastRenderedFrames);
+        assert(snapshot.queueDepth <= AudioCore::kCommandQueueCapacity + 1);
         lastRenderedFrames = snapshot.renderedFrames;
         if (snapshot.renderedFrames >= 640000) break;
     }

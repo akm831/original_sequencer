@@ -514,3 +514,12 @@ Framework / Backend比較ではSampler-heavy、Synth-heavy、Mixed、BurstのRef
 Performance ProfileはDevice / Backend側で選びProjectには保存しない。
 Global Budget到達はSafety Fallbackとし、通常再生で頻発する場合は性能要件またはProfileを見直す。
 ```
+
+
+## 2026-10-02 — P3 Sample Offset検証の最小発音経路
+
+Technology PrototypeのP3をHost上で検証できるよう、Common CoreのTrigger Commandは50 ms / 220 Hz / 最大Amplitude 0.08のMonophonic検証用Burstを開始する。Commandの時刻まで先行区間をRenderしてからVoiceを開始することで、DiagnosticsのOffset記録と実際の出力Sampleを一致させる。
+
+Flutterの検証ボタンはScheduled Command入力であり、製品版Live Padではない。Live PadはLookahead末尾に入れない既存方針を維持する。Poly Voice / Voice Steal / 製品版Oscillatorの仕様はこの検証音から確定しない。
+
+Android AdapterのControl側でCommand投入とCore Lifecycleを直列化する。Audio CallbackへMutex、UI、allocationを持ち込まない。旧Streamの遅れたError Callbackによって新Streamを再OpenしないようStream identityを確認する。

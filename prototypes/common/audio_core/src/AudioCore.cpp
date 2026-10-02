@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <numbers>
 
 namespace original_sequencer::prototype {
 
@@ -27,6 +28,7 @@ void AudioCore::initialize(double sampleRate, std::uint32_t maxCallbackFrames) n
     sampleRate_ = sampleRate;
     maxCallbackFrames_ = maxCallbackFrames;
     initialized_ = true;
+    clearBurst();
     commandQueue_.reset();
     hasPendingCommand_ = false;
     diagnosticSampleRate_.store(sampleRate, std::memory_order_relaxed);
@@ -35,6 +37,7 @@ void AudioCore::initialize(double sampleRate, std::uint32_t maxCallbackFrames) n
 }
 
 void AudioCore::reset() noexcept {
+    clearBurst();
     commandQueue_.reset();
     hasPendingCommand_ = false;
     clearRealtimeDiagnostics();
@@ -44,6 +47,7 @@ void AudioCore::shutdown() noexcept {
     initialized_ = false;
     sampleRate_ = 0.0;
     maxCallbackFrames_ = 0;
+    clearBurst();
     commandQueue_.reset();
     hasPendingCommand_ = false;
     diagnosticSampleRate_.store(0.0, std::memory_order_relaxed);
@@ -51,42 +55,87 @@ void AudioCore::shutdown() noexcept {
 }
 
 bool AudioCore::enqueueCommand(const AudioCommand& command) noexcept {
+    if (command.type != AudioCommandType::trigger || !std::isfinite(command.value)
+        || command.value < 0.0F || command.value > 1.0F) return false;
     return commandQueue_.tryPush(command);
 }
 
-void AudioCore::consumeCommands(std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept {
-    if (frameCount == 0) return;
-    const auto callbackEndFrame = callbackStartFrame > std::numeric_limits<std::uint64_t>::max() - frameCount
-        ? std::numeric_limits<std::uint64_t>::max()
-        : callbackStartFrame + frameCount;
+void AudioCore::clearBurst() noexcept {
+    burstPhase_ = 0.0;
+    burstAmplitude_ = 0.0F;
+    burstRemaining_ = 0;
+    burstLength_ = 0;
+}
 
-    for (;;) {
-        if (!hasPendingCommand_) {
-            if (!commandQueue_.tryPop(pendingCommand_)) return;
-            hasPendingCommand_ = true;
+void AudioCore::renderBurst(const OutputView& output, std::uint32_t begin, std::uint32_t end) noexcept {
+    if (sampleRate_ <= 0.0 || burstRemaining_ == 0) return;
+    const auto increment = 2.0 * std::numbers::pi_v<double> * 220.0 / sampleRate_;
+    for (auto frame = begin; frame < end && burstRemaining_ > 0; ++frame) {
+        const auto envelope = static_cast<float>(burstRemaining_) / static_cast<float>(burstLength_);
+        const auto value = static_cast<float>(std::cos(burstPhase_)) * burstAmplitude_ * envelope;
+        for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
+            if (output.interleaved != nullptr)
+                output.interleaved[static_cast<std::size_t>(frame) * output.channels + channel] = value;
+            else if (output.planar != nullptr && output.planar[channel] != nullptr)
+                output.planar[channel][static_cast<std::size_t>(output.offset) + frame] = value;
         }
-
-        if (pendingCommand_.targetFrame >= callbackEndFrame) return;
-
-        const auto offset = pendingCommand_.targetFrame <= callbackStartFrame
-            ? 0U
-            : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame);
-
-        if (pendingCommand_.type == AudioCommandType::trigger) {
-            diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
-            diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
-        }
-        hasPendingCommand_ = false;
+        burstPhase_ += increment;
+        if (burstPhase_ >= 2.0 * std::numbers::pi_v<double>) burstPhase_ -= 2.0 * std::numbers::pi_v<double>;
+        --burstRemaining_;
     }
 }
 
+void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callbackStartFrame, std::uint32_t frameCount) noexcept {
+    if (frameCount == 0) return;
+    std::uint32_t cursor = 0;
+    // Bound work even if the producer keeps refilling during this callback.
+    for (std::size_t processed = 0; processed < kCommandQueueCapacity + 1; ++processed) {
+        if (!hasPendingCommand_) {
+            if (!commandQueue_.tryPop(pendingCommand_)) break;
+            hasPendingCommand_ = true;
+        }
+        // Subtraction also handles frame timelines near UINT64_MAX without overflow.
+        if (pendingCommand_.targetFrame > callbackStartFrame
+            && pendingCommand_.targetFrame - callbackStartFrame >= frameCount) break;
+        const auto offset = pendingCommand_.targetFrame <= callbackStartFrame
+            ? 0U : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame);
+        renderBurst(output, cursor, offset);
+        cursor = offset;
+        diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
+        diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
+        clearBurst();
+        if (sampleRate_ > 0.0 && std::isfinite(sampleRate_)) {
+            // P3 test voice: a monophonic 50 ms decaying cosine burst, max 8%.
+            burstLength_ = static_cast<std::uint32_t>(std::clamp(sampleRate_ * 0.05, 1.0, 96000.0));
+            burstRemaining_ = burstLength_;
+            burstAmplitude_ = 0.08F * pendingCommand_.value;
+        }
+        hasPendingCommand_ = false;
+    }
+    renderBurst(output, cursor, frameCount);
+}
+
 void AudioCore::render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept {
+    renderOutput(OutputView{interleavedOutput, nullptr, channelCount, 0}, frameCount, callbackStartFrame);
+}
+
+void AudioCore::renderPlanar(float* const* output, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame, std::uint32_t outputOffset) noexcept {
+    renderOutput(OutputView{nullptr, output, channelCount, outputOffset}, frameCount, callbackStartFrame);
+}
+
+void AudioCore::renderOutput(const OutputView& output, std::uint32_t frameCount, std::uint64_t callbackStartFrame) noexcept {
     diagnosticCallbackStartFrame_.store(callbackStartFrame, std::memory_order_relaxed);
     diagnosticCallbackFrames_.store(frameCount, std::memory_order_relaxed);
     diagnosticRenderedFrames_.fetch_add(frameCount, std::memory_order_relaxed);
-    consumeCommands(callbackStartFrame, frameCount);
-    if (interleavedOutput == nullptr || channelCount == 0) return;
-    std::fill_n(interleavedOutput, static_cast<std::size_t>(frameCount) * channelCount, 0.0F);
+    if (output.interleaved != nullptr)
+        std::fill_n(output.interleaved, static_cast<std::size_t>(frameCount) * output.channels, 0.0F);
+    else if (output.planar != nullptr) {
+        for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
+            if (output.planar[channel] != nullptr)
+                std::fill_n(output.planar[channel] + output.offset, frameCount, 0.0F);
+        }
+    }
+    consumeCommands(output, callbackStartFrame, frameCount);
 }
 
 void AudioCore::recordCallbackTiming(std::uint64_t callbackStartFrame, std::uint32_t frameCount, double durationUs) noexcept {
@@ -139,7 +188,7 @@ DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
         .callbackLoadP99 = loadPercentile(0.99),
         .callbackLoadPeak = diagnosticCallbackLoadPeak_.load(std::memory_order_relaxed),
         .audioRestartCount = diagnosticAudioRestartCount_.load(std::memory_order_relaxed),
-        .queueDepth = static_cast<std::uint32_t>(commandQueue_.depth() + (hasPendingCommand_ ? 1U : 0U)),
+        .queueDepth = static_cast<std::uint32_t>(commandQueue_.depth() + (hasPendingCommand_.load(std::memory_order_relaxed) ? 1U : 0U)),
         .queueHighWaterMark = static_cast<std::uint32_t>(commandQueue_.highWaterMark()),
         .queueOverflowCount = commandQueue_.overflowCount(),
         .triggerCount = diagnosticTriggerCount_.load(std::memory_order_relaxed),

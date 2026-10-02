@@ -25,9 +25,24 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - Histogram解像度を0.1 percentage pointへ修正し、sub-1%負荷のPercentileを観測可能にした
 - Flutter P2 Reference Device baseline確定: 48000 Hz / callbackFrames 96 (min 96 / max 96) / current load約0.70% / p95 0.7% / p99 0.7% / peak 33.80%
 
+- Common Coreへ256容量SPSC Queue、timestamp付きCommand、Queue / Trigger Diagnosticsを実装済み（`9b2f873`まで。旧statusには未反映だった）
+- 2026-10-01: Diagnosticsのpending flagをatomic化し、Queue Depthの並行読み取りを容量範囲へ制限
+- CallbackのCommand処理を最大257件に制限し、Producerの連続投入で処理が無限に延びることを防止
+- Host smoke tests 3本が成功。10万件の並行FIFO転送、Callback境界、可変Buffer、Restart時Pending破棄を確認
+
+- 2026-10-02: Common Coreへ指定Sample Offsetで始まる50 ms / 220 Hz検証用Burstを実装。Callback分割前後で波形が一致するHost testを追加
+- Flutter C ABI / DartへScheduled Trigger APIとQueue / Trigger Diagnosticsを接続し、P3検証ボタンを追加
+- Android AdapterでCommand投入とCore LifecycleをControl側Mutexにより直列化（Audio CallbackはMutex不使用）
+- Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。Flutter SDK / NDK実build・実機試験は未実施
+
+- JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
+- JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
+
+- Flutter候補の自動Build Workflowを追加: C++ tests → Flutter analyze → ARM64 Debug APK → Native Library Packaging検査 → Artifact保存。初回Run `36962438772`ですべて成功
+
 ## Current Topic
 
-Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
+Technology Prototype: P3 Build検証 / GitHub Actions自動APK
 
 現在の到達点:
 
@@ -38,14 +53,19 @@ Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
 - Flutter Device Restartコードはbuild・通常再生確認済み。route change実機試験は機材準備後に行う
 - JUCE Device RestartとP2同等計測は未確認
 
+実装と確認の区別:
+
+- Common Coreは指定FrameからOffsetを計算し、その位置から検証用Burstを実際に出力する。Host testで発音位置・Buffer境界・可変Buffer・Release後silenceを確認済み
+- Flutterからの投入とDiagnostics表示は実装済み。従来の連続Test Toneを止め、通常は無音、ボタンで短いBurstを出す
+- P3の検証音はMonophonic / Retrigger方式。製品版Synth / Poly Voice実装ではなく、Live Padの低Latency経路とも区別する
+- GitHub ActionsでCMakeによるHost tests 4本、Flutter analyze、ARM64 Android Debug APK build、必要Native LibrariesのPackaging検査が成功。実機P3は未確認
+- JUCEのP3 UI・Burst出力・P2同等計測も実装済み。両候補とも連続Test Toneを止め、同じCoreの検証用Burstを出力。実機比較はまだ完了していない
+
 次に進める主題:
 
-1. Common Audio Coreへ固定容量SPSC Bounded Command Queueを追加する
-2. Queue Depth / High Water Mark / Overflow CountをDiagnosticsへ追加する
-3. Audio Thread側でtimestamp付きCommandをallocation / lockなしでconsumeする
-4. 同一Callback内の異なるSample OffsetでTriggerできる最小Vertical Sliceをhost testで確認する
-5. Flutter FFIから最小Trigger Commandを投入し、実機でSample-accurate Trigger経路を確認する
-6. 同じ構造をJUCE Candidateでも使用し比較する
+1. 生成したFlutter APKで実機P3を確認する。JUCEの自動Android Buildは後続
+2. Android実機で両候補のP3発音 / Queue Diagnostics / P2再測定を確認する
+3. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
 
 ## Important Current Decisions
 
@@ -86,4 +106,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-Common Audio Coreへ最小SPSC Bounded Command Queueを追加する。最初はtimestamp付きTrigger CommandとQueue Diagnosticsに限定し、host smoke testでcapacity / FIFO / overflow / callback境界を検証してからFlutter FFIへ接続する。Device Restart route change試験は機材準備後に戻って実施する。
+P3の実装は両候補へ接続済み。Flutterの自動APK Buildは成功。次の検証は実機P3 / P2再測定とJUCE Android Build。続く実装はP4 Transport / 16-step Lookahead。技術選定は実機比較結果を揃えてから行う。
