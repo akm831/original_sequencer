@@ -220,3 +220,10 @@ SDK、C++ standard、source wiring、NDK pinが期待値と一致しない場合
 - Callback Load計測
 
 JUCE側のP0 / P1基本Bring-upは確認済みですが、Candidate比較完了にはFlutter側の同等確認とDevice Restart / P2計測が残っています。
+
+
+## 2026-10-02: Flutter APK自動Build
+
+GitHub Actionsの設定は`.github/workflows/prototype-ci.yml`、使い方は`docs/automated-builds.md`を参照。Flutterは3.47.2、Javaは17に固定し、既存Android SDK / NDK / CMake指定と同じ条件でARM64 Debug APKをBuildする。Native Audio Bridge / C++ Runtime / Flutter EngineがAPKへ含まれることも検査する。
+
+Common CoreのHost testはDebug設定とし、assertを無効にして見かけ上成功させない。Workflow追加時点の初回実行結果は`docs/status.md`へ記録する。

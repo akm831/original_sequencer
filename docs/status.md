@@ -38,9 +38,11 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
 - JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
 
+- Flutter候補の自動Build Workflowを追加: C++ tests → Flutter analyze → ARM64 Debug APK → Native Library Packaging検査 → Artifact保存（初回Run結果は確認中）
+
 ## Current Topic
 
-Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
+Technology Prototype: P3 Build検証 / GitHub Actions自動APK
 
 現在の到達点:
 
@@ -61,7 +63,7 @@ Technology Prototype: Bounded Command Queue → Sample-accurate Trigger
 
 次に進める主題:
 
-1. SDKが使える環境でFlutter analyze / 両候補Android buildを確認する
+1. GitHub ActionsでFlutter analyze / Android APK buildを確認する。JUCEの自動Android Buildは後続
 2. Android実機で両候補のP3発音 / Queue Diagnostics / P2再測定を確認する
 3. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
 
