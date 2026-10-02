@@ -38,7 +38,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
 - JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
 
-- Flutter候補の自動Build Workflowを追加: C++ tests → Flutter analyze → ARM64 Debug APK → Native Library Packaging検査 → Artifact保存（初回Run結果は確認中）
+- Flutter候補の自動Build Workflowを追加: C++ tests → Flutter analyze → ARM64 Debug APK → Native Library Packaging検査 → Artifact保存。初回Run `36962438772`ですべて成功
 
 ## Current Topic
 
@@ -58,12 +58,12 @@ Technology Prototype: P3 Build検証 / GitHub Actions自動APK
 - Common Coreは指定FrameからOffsetを計算し、その位置から検証用Burstを実際に出力する。Host testで発音位置・Buffer境界・可変Buffer・Release後silenceを確認済み
 - Flutterからの投入とDiagnostics表示は実装済み。従来の連続Test Toneを止め、通常は無音、ボタンで短いBurstを出す
 - P3の検証音はMonophonic / Retrigger方式。製品版Synth / Poly Voice実装ではなく、Live Padの低Latency経路とも区別する
-- Flutter SDK / Android NDKがこの作業環境にないため、Flutter analyze / APK build / 実機P3確認は未実施。Oboeヘッダーでの構文検査をAPK buildの代わりとは扱わない
+- GitHub ActionsでCMakeによるHost tests 4本、Flutter analyze、ARM64 Android Debug APK build、必要Native LibrariesのPackaging検査が成功。実機P3は未確認
 - JUCEのP3 UI・Burst出力・P2同等計測も実装済み。両候補とも連続Test Toneを止め、同じCoreの検証用Burstを出力。実機比較はまだ完了していない
 
 次に進める主題:
 
-1. GitHub ActionsでFlutter analyze / Android APK buildを確認する。JUCEの自動Android Buildは後続
+1. 生成したFlutter APKで実機P3を確認する。JUCEの自動Android Buildは後続
 2. Android実機で両候補のP3発音 / Queue Diagnostics / P2再測定を確認する
 3. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
 
@@ -106,4 +106,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-P3の実装は両候補へ接続済み。次の検証はSDKによるBuildと実機P3 / P2再測定。続く実装はP4 Transport / 16-step Lookahead。技術選定は実機比較結果を揃えてから行う。
+P3の実装は両候補へ接続済み。Flutterの自動APK Buildは成功。次の検証は実機P3 / P2再測定とJUCE Android Build。続く実装はP4 Transport / 16-step Lookahead。技術選定は実機比較結果を揃えてから行う。

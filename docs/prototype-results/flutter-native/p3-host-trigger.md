@@ -34,3 +34,8 @@ GCC C++20、`-Wall -Wextra -Werror -pthread`で直接Buildして実行:
 - Monophonic BurstはP3の検証音。Poly Voice、Live Pad、End-to-end Latency、P3負荷baselineは未確認
 
 最終Technology DecisionやP3実機完了の根拠としてこのHost結果だけを使わない。
+
+
+## 後続のCI検証
+
+このHost記録の後、GitHub Actions Run `36962438772`でCMakeによるHost tests、Flutter analyze、Android APK build、Native Library Packaging検査が成功した。最新のBuild結果は`ci-build-2026-10-02.md`を参照。実機P3が未確認である点は変わらない。

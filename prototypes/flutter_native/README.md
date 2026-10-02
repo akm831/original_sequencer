@@ -9,7 +9,8 @@ UIはFlutter、Realtime AudioはCommon C++ Core / Android Oboeへ分離する候
 ## 現在のCheckpoint
 
 Android P1音出しとP2負荷計測の実機記録は`docs/status.md`を参照してください。
-P3のScheduled Trigger経路は実装済み、Hostテスト成功。Flutter analyze / APK build / 実機P3は未確認です。
+P3のScheduled Trigger経路は実装済み。Hostテスト、GitHub ActionsでのFlutter analyze / ARM64 Android Debug APK buildが成功。実機P3は未確認です。
+自動BuildとAPK入手方法は`docs/automated-builds.md`を参照してください。
 
 画面の「Trigger 50 ms test burst」でNative側へtimestamp付きCommandを投入します。
 通常は無音、受理されたCommandの指定Sample Offsetから220 Hzの短い検証音を鳴らします。

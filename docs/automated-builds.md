@@ -25,4 +25,4 @@ ARM64 Android端末向けで、Debug署名を使用します。Store公開用の
 
 Build成功とNative LibraryのPackagingまでは自動で確認します。耳での発音、Touch-to-sound Latency、長時間安定性、Route Changeなどの実機P2 / P3比較は別途行います。
 
-Workflowの初回実行結果は`docs/status.md`へ記録します。GitHub ActionsのRepository設定や接続Accountの権限によって実行が止まる場合は、Build成功として扱いません。
+初回Run `36962438772`ではC++ tests 4本、Flutter analyze、APK Build、Packaging検査、Artifact Uploadがすべて成功しました。詳細は`docs/prototype-results/flutter-native/ci-build-2026-10-02.md`を参照してください。GitHub ActionsのRepository設定や接続Accountの権限によって実行が止まる場合は、Build成功として扱いません。

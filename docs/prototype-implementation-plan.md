@@ -370,7 +370,7 @@ SPSCで成立するCommand経路から開始します。
 - Delayは0〜96000 Frames。Queue満杯、非有限または範囲外のvalue、以前のCommandより早いtarget、停止中のStreamは失敗として返す。部分的な成功を前提に自動再投入しない
 - Androidでは投入とStart / Restart / StopをControl側Mutexで直列化し、Close中のStart / 投入を拒否する。Audio CallbackはMutexを取得しない。Handle Destroyは所有側のみで行い、他のBridge callと並行させない
 - Flutter C ABIとDart Diagnosticsは同時に変更したため、Native LibraryとDartは同じRevisionで再Buildする
-- Host出力Sample検証とFlutter UI接続は実装済み。Flutter / JUCEのP3 UI接続済み。両候補のAndroid build・実機発音確認は未完了
+- Host出力Sample検証とFlutter UI接続は実装済み。Flutter / JUCEのP3 UI接続済み。FlutterのAndroid APK buildはGitHub Actionsで成功。JUCE Android buildと両候補の実機P3発音確認は未完了
 
 ## Diagnostics計測位置
 
