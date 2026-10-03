@@ -114,3 +114,24 @@ JUCEのPlanar AudioBufferはCommon CoreへChannel Pointerと`startSample`を渡�
 Command投入と`prepareToPlay` / `releaseResources`をControl側Mutexで直列化します。通常の`getNextAudioBlock`はMutexを取得しません。Queue / Trigger Diagnosticsに加え、Flutterと同じCoreのCallback Load / P95 / P99 / Peak / Timelineを表示します。
 
 JUCE 9.0.2公式HeaderでC++構文検査は成功していますが、Link / Android build / 実機P2・P3は未実施です。既存のP1実機結果は過去の連続Test Toneに対する結果です。
+
+## P4 Play / Stop、BPM、16 Steps
+
+共有C++ PrototypeSequencerをNative Control Threadから5 ms周期で進め、約50 ms先まで予約します。PlayはStep 1から開始、Stopは旧予約を世代番号で無効化し、現在の短いVoiceは50 ms以内に終了します。BPM / Patternは未予約Eventから反映します。UIは60 HzでNativeの実行済み位置を読み、現在StepをOrangeで表示します。診断は5 Hzです。
+
+Audio diagnosticsから診断画面へ切り替えても再生は続きます。Test soundは停止中のみ。App Suspend時は停止し、Resume時は自動再生しません。Device再準備時もTransportは停止し、BPM / Patternは維持します。
+
+新Application ID: `com.originalsequencer.juceprototype`。Flutterの`com.originalsequencer.prototype`と併存します。旧JUCE P1版は旧IDなので、新版は別AppとしてInstallされます。
+
+## 自動Android Build
+
+`.github/workflows/juce-prototype-ci.yml`がJUCE 9.0.2の固定CommitからProjucerをbuildし、.jucerをExportします。`configure_android_export.py`でNDK 28.2.13676358 / JDK 17とJava 8 bytecodeを設定、`verify_android_export.py --require-generated`で確認してARM64 APKをbuildします。JNI同梱を検査し、`juce-arm64-debug.apk`とbuild-info.jsonを14日間Artifactへ保存します。
+
+Macで手動再生成する場合も、Save Project後に次を実行してください:
+
+```sh
+python3 prototypes/juce/configure_android_export.py
+python3 prototypes/juce/verify_android_export.py --require-generated
+```
+
+M4 MacのAndroid StudioではARM64 AVDへAPKをInstallしてUI / 基本発音を確認できます。実音声Latency、Route Change、継続負荷はAndroid実機で比較します。比較手順は`docs/framework-comparison.md`のP4項を参照してください。
