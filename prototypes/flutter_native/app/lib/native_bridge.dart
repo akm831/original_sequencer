@@ -52,6 +52,38 @@ typedef _GetDiagnosticsDart = _PrototypeDiagnosticsNative Function(Pointer<Void>
 typedef _ScheduleTriggerNative = Int32 Function(Pointer<Void>, Uint32, Float);
 typedef _ScheduleTriggerDart = int Function(Pointer<Void>, int, double);
 
+final class _SequenceNative extends Struct {
+  @Double()
+  external double bpm;
+  @Uint32()
+  external int running;
+  @Uint32()
+  external int stepMask;
+  @Uint32()
+  external int currentStep;
+  @Uint64()
+  external int missedSteps;
+}
+
+typedef _PlayingNative = Int32 Function(Pointer<Void>, Int32);
+typedef _PlayingDart = int Function(Pointer<Void>, int);
+typedef _BpmNative = Int32 Function(Pointer<Void>, Double);
+typedef _BpmDart = int Function(Pointer<Void>, double);
+typedef _StepNative = Int32 Function(Pointer<Void>, Uint32, Int32);
+typedef _StepDart = int Function(Pointer<Void>, int, int);
+typedef _SequenceGetNative = _SequenceNative Function(Pointer<Void>);
+typedef _SequenceGetDart = _SequenceNative Function(Pointer<Void>);
+
+class PrototypeSequenceState {
+  const PrototypeSequenceState(this.bpm, this.running, this.stepMask,
+    this.currentStep, this.missedSteps);
+  final double bpm;
+  final bool running;
+  final int stepMask;
+  final int currentStep;
+  final int missedSteps;
+}
+
 class PrototypeDiagnostics {
   const PrototypeDiagnostics({
     required this.sampleRate,
@@ -94,7 +126,8 @@ class PrototypeDiagnostics {
 
 class PrototypeNativeBridge {
   PrototypeNativeBridge._(this._handle, this._destroy, this._startAudio,
-    this._stopAudio, this._getDiagnostics, this._scheduleTrigger);
+    this._stopAudio, this._getDiagnostics, this._scheduleTrigger,
+    this._setPlaying, this._setBpm, this._setStep, this._getSequence);
 
   factory PrototypeNativeBridge.open() {
     if (!Platform.isAndroid) {
@@ -107,10 +140,14 @@ class PrototypeNativeBridge {
     final stopAudio = library.lookupFunction<_StopAudioNative, _StopAudioDart>('prototype_stop_audio');
     final getDiagnostics = library.lookupFunction<_GetDiagnosticsNative, _GetDiagnosticsDart>('prototype_get_diagnostics');
     final scheduleTrigger = library.lookupFunction<_ScheduleTriggerNative, _ScheduleTriggerDart>('prototype_schedule_trigger');
+    final setPlaying = library.lookupFunction<_PlayingNative, _PlayingDart>('prototype_set_playing');
+    final setBpm = library.lookupFunction<_BpmNative, _BpmDart>('prototype_set_bpm');
+    final setStep = library.lookupFunction<_StepNative, _StepDart>('prototype_set_step');
+    final getSequence = library.lookupFunction<_SequenceGetNative, _SequenceGetDart>('prototype_get_sequence_state');
     final handle = create();
     if (handle == nullptr) throw StateError('prototype_create returned a null handle.');
     return PrototypeNativeBridge._(handle, destroy, startAudio,
-      stopAudio, getDiagnostics, scheduleTrigger);
+      stopAudio, getDiagnostics, scheduleTrigger, setPlaying, setBpm, setStep, getSequence);
   }
 
   final Pointer<Void> _handle;
@@ -119,7 +156,34 @@ class PrototypeNativeBridge {
   final _StopAudioDart _stopAudio;
   final _GetDiagnosticsDart _getDiagnostics;
   final _ScheduleTriggerDart _scheduleTrigger;
+  final _PlayingDart _setPlaying;
+  final _BpmDart _setBpm;
+  final _StepDart _setStep;
+  final _SequenceGetDart _getSequence;
   bool _disposed = false;
+
+  bool setPlaying(bool playing) {
+    _checkOpen();
+    return _setPlaying(_handle, playing ? 1 : 0) != 0;
+  }
+
+  bool setBpm(double bpm) {
+    _checkOpen();
+    return _setBpm(_handle, bpm) != 0;
+  }
+
+  bool setStep(int step, bool enabled) {
+    _checkOpen();
+    if (step < 0 || step >= 16) throw RangeError.range(step, 0, 15);
+    return _setStep(_handle, step, enabled ? 1 : 0) != 0;
+  }
+
+  PrototypeSequenceState sequenceState() {
+    _checkOpen();
+    final n = _getSequence(_handle);
+    return PrototypeSequenceState(n.bpm, n.running != 0, n.stepMask,
+      n.currentStep, n.missedSteps);
+  }
 
   void _checkOpen() {
     if (_disposed) throw StateError('PrototypeNativeBridge has already been disposed.');

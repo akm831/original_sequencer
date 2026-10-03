@@ -557,3 +557,7 @@ Reference Deviceの機種はRepositoryへ固定せず、実際に使用するDev
 5. 同一Android Reference DeviceでLaunch確認する
 
 Framework / SDK Versionは実装開始時点の現行Stableと公式要件を確認して固定し、`docs/decisions.md`またはPrototype Build Notesへ記録します。
+
+## 2026-10-03 P4実装Checkpoint
+
+Common `PrototypeSequencer`とFlutter Transport / BPM / 16-step UIを追加。Host testは48 kHz / 120 BPMの位置、44.1 kHz / 123 BPMの丸めと累積Drift、Silent Step、Stop / Restartの旧Event破棄、Tempo / Pattern変更、Scheduler Gap、Overflow停止、C ABIを確認する。Android Control ThreadのSchedulerとAudio Callbackを分離する。Flutter自動APK Build後、実機とJUCE同等経路の比較へ進む。

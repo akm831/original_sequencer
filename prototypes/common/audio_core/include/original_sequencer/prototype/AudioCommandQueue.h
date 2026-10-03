@@ -11,6 +11,7 @@ namespace original_sequencer::prototype {
 
 enum class AudioCommandType : std::uint8_t {
     trigger = 0,
+    sequenceStep = 1,
 };
 
 struct AudioCommand {
@@ -18,6 +19,8 @@ struct AudioCommand {
     std::uint64_t targetFrame = 0;
     std::uint32_t voice = 0;
     float value = 1.0F;
+    std::uint64_t sequenceGeneration = 0; // 0 = standalone P3 trigger
+    std::uint32_t sequenceStep = 16;
 };
 
 template <std::size_t Capacity>

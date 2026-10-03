@@ -27,6 +27,17 @@ typedef struct PrototypeDiagnostics {
     uint64_t trigger_count;
     uint32_t last_trigger_offset;
 } PrototypeDiagnostics;
+typedef struct PrototypeSequenceState {
+    double bpm;
+    uint32_t running;
+    uint32_t step_mask;
+    uint32_t current_step;
+    uint64_t missed_steps;
+} PrototypeSequenceState;
+PROTOTYPE_FFI_EXPORT int32_t prototype_set_playing(void* handle, int32_t playing);
+PROTOTYPE_FFI_EXPORT int32_t prototype_set_bpm(void* handle, double bpm);
+PROTOTYPE_FFI_EXPORT int32_t prototype_set_step(void* handle, uint32_t step, int32_t enabled);
+PROTOTYPE_FFI_EXPORT PrototypeSequenceState prototype_get_sequence_state(void* handle);
 PROTOTYPE_FFI_EXPORT void* prototype_create(void);
 PROTOTYPE_FFI_EXPORT void prototype_destroy(void* handle);
 PROTOTYPE_FFI_EXPORT void prototype_initialize(void* handle, double sample_rate, uint32_t max_callback_frames);

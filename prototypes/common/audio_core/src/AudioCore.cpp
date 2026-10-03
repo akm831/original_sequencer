@@ -17,6 +17,8 @@ void AudioCore::clearRealtimeDiagnostics() noexcept {
     diagnosticCallbackDurationUs_.store(0.0, std::memory_order_relaxed);
     diagnosticCallbackLoad_.store(0.0, std::memory_order_relaxed);
     diagnosticCallbackLoadPeak_.store(0.0, std::memory_order_relaxed);
+    playedSequenceGeneration_.store(0, std::memory_order_relaxed);
+    playedSequenceStep_.store(16, std::memory_order_relaxed);
     diagnosticTriggerCount_.store(0, std::memory_order_relaxed);
     diagnosticLastTriggerOffset_.store(0, std::memory_order_relaxed);
     for (auto& bucket : loadHistogram_) bucket.store(0, std::memory_order_relaxed);
@@ -55,7 +57,9 @@ void AudioCore::shutdown() noexcept {
 }
 
 bool AudioCore::enqueueCommand(const AudioCommand& command) noexcept {
-    if (command.type != AudioCommandType::trigger || !std::isfinite(command.value)
+    if ((command.type != AudioCommandType::trigger && command.type != AudioCommandType::sequenceStep)
+        || (command.sequenceGeneration != 0 && command.sequenceStep > 16)
+        || !std::isfinite(command.value)
         || command.value < 0.0F || command.value > 1.0F) return false;
     return commandQueue_.tryPush(command);
 }
@@ -94,13 +98,26 @@ void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callback
             if (!commandQueue_.tryPop(pendingCommand_)) break;
             hasPendingCommand_ = true;
         }
+        if (pendingCommand_.sequenceGeneration != 0
+            && pendingCommand_.sequenceGeneration != activeSequenceGeneration_.load(std::memory_order_acquire)) {
+            hasPendingCommand_ = false;
+            continue; // discard before timestamp check, allowing an earlier restart
+        }
         // Subtraction also handles frame timelines near UINT64_MAX without overflow.
         if (pendingCommand_.targetFrame > callbackStartFrame
             && pendingCommand_.targetFrame - callbackStartFrame >= frameCount) break;
-        const auto offset = pendingCommand_.targetFrame <= callbackStartFrame
-            ? 0U : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame);
+        const auto offset = std::max(cursor, pendingCommand_.targetFrame <= callbackStartFrame
+            ? 0U : static_cast<std::uint32_t>(pendingCommand_.targetFrame - callbackStartFrame));
         renderBurst(output, cursor, offset);
         cursor = offset;
+        if (pendingCommand_.sequenceGeneration != 0 && pendingCommand_.sequenceStep < 16) {
+            playedSequenceStep_.store(pendingCommand_.sequenceStep, std::memory_order_relaxed);
+            playedSequenceGeneration_.store(pendingCommand_.sequenceGeneration, std::memory_order_release);
+        }
+        if (pendingCommand_.type == AudioCommandType::sequenceStep) {
+            hasPendingCommand_ = false;
+            continue;
+        }
         diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
         diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
         clearBurst();
@@ -193,6 +210,8 @@ DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
         .queueOverflowCount = commandQueue_.overflowCount(),
         .triggerCount = diagnosticTriggerCount_.load(std::memory_order_relaxed),
         .lastTriggerOffset = diagnosticLastTriggerOffset_.load(std::memory_order_relaxed),
+        .sequenceStep = playedSequenceGeneration_.load(std::memory_order_acquire) == activeSequenceGeneration_.load(std::memory_order_acquire)
+            ? playedSequenceStep_.load(std::memory_order_relaxed) : 16U,
     };
 }
 
