@@ -122,6 +122,24 @@ int main() {
     for (int i=0; i<20; ++i) prototype_render_for_test(handle,output.data(),96,2);
     assert(prototype_get_sequence_state(handle).current_pattern == 2);
     assert(prototype_get_diagnostics(handle).trigger_count == 1);
+    prototype_initialize(handle,48000,256);
+    PrototypeTrackConfig config{};
+    config.mask=1; config.accents=1; config.level=.7F;
+    config.pitch=.5F; config.decay=.5F; config.tone=.5F; config.cutoff=.4F;
+    config.resonance=.7F; config.envelope=.6F; config.flags=1;
+    for(auto& note:config.notes) note=36;
+    static_assert(sizeof(PrototypeTrackConfig)==112);
+    assert(prototype_update_track(handle,3,3,nullptr)==0);
+    assert(prototype_update_track(handle,3,3,&config)==1);
+    config.notes[0]=85; config.mask=65535;
+    assert(prototype_update_track(handle,3,3,&config)==0); // invalid update is all-or-nothing
+    assert(prototype_select_pattern(handle,3)==1);
+    assert(prototype_set_playing(handle,1)==1);
+    for(int i=0;i<200;i++) prototype_render_for_test(handle,output.data(),96,2);
+    assert(prototype_get_diagnostics(handle).trigger_count==1);
+    assert(prototype_set_playing(handle,0)==1);
+    for(int i=0;i<12;i++) prototype_render_for_test(handle,output.data(),96,2);
+    for(float sample:output) assert(sample==0); // new voices fade out within 20 ms
     prototype_destroy(handle);
     prototype_destroy(nullptr);
     return 0;

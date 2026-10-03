@@ -89,6 +89,28 @@ typedef _SoundDart = int Function(Pointer<Void>, int, int, double, double, doubl
 typedef _NoteNative = Int32 Function(Pointer<Void>, Uint32, Uint32, Uint32, Uint32, Int32);
 typedef _NoteDart = int Function(Pointer<Void>, int, int, int, int, int);
 
+final class _TrackConfigNative extends Struct {
+  @Uint32() external int mask;
+  @Uint32() external int accents;
+  @Float() external double level;
+  @Int32() external int muted;
+  @Float() external double pitch;
+  @Float() external double decay;
+  @Float() external double tone;
+  @Float() external double cutoff;
+  @Float() external double resonance;
+  @Float() external double envelope;
+  @Uint32() external int waveform;
+  @Uint32() external int flags;
+  @Array(16) external Array<Uint32> notes;
+}
+typedef _UpdateNative = Int32 Function(Pointer<Void>, Uint32, Uint32, Pointer<_TrackConfigNative>);
+typedef _UpdateDart = int Function(Pointer<Void>, int, int, Pointer<_TrackConfigNative>);
+typedef _AllocNative = Pointer<Void> Function(IntPtr);
+typedef _AllocDart = Pointer<Void> Function(int);
+typedef _FreeNative = Void Function(Pointer<Void>);
+typedef _FreeDart = void Function(Pointer<Void>);
+
 class PrototypeSequenceState {
   const PrototypeSequenceState(this.bpm, this.running, this.stepMask,
     this.currentStep, this.missedSteps, [this.currentPattern = 0, this.queuedPattern = 4]);
@@ -143,7 +165,7 @@ class PrototypeDiagnostics {
 class PrototypeNativeBridge {
   PrototypeNativeBridge._(this._handle, this._destroy, this._startAudio,
     this._stopAudio, this._getDiagnostics, this._scheduleTrigger,
-    this._setPlaying, this._setBpm, this._setStep, this._getSequence, this._setTrack, this._selectPattern, this._setSound, this._setNote);
+    this._setPlaying, this._setBpm, this._setStep, this._getSequence, this._setTrack, this._selectPattern, this._setSound, this._setNote, this._updateTrack, this._allocate, this._free);
 
   factory PrototypeNativeBridge.open() {
     if (!Platform.isAndroid) {
@@ -164,10 +186,14 @@ class PrototypeNativeBridge {
     final selectPattern = library.lookupFunction<_PatternNative, _PatternDart>('prototype_select_pattern');
     final setSound = library.lookupFunction<_SoundNative, _SoundDart>('prototype_set_sound');
     final setNote = library.lookupFunction<_NoteNative, _NoteDart>('prototype_set_note');
+    final updateTrack = library.lookupFunction<_UpdateNative, _UpdateDart>('prototype_update_track');
+    final libc = DynamicLibrary.process();
+    final allocate = libc.lookupFunction<_AllocNative, _AllocDart>('malloc');
+    final free = libc.lookupFunction<_FreeNative, _FreeDart>('free');
     final handle = create();
     if (handle == nullptr) throw StateError('prototype_create returned a null handle.');
     return PrototypeNativeBridge._(handle, destroy, startAudio,
-      stopAudio, getDiagnostics, scheduleTrigger, setPlaying, setBpm, setStep, getSequence, setTrack, selectPattern, setSound, setNote);
+      stopAudio, getDiagnostics, scheduleTrigger, setPlaying, setBpm, setStep, getSequence, setTrack, selectPattern, setSound, setNote, updateTrack, allocate, free);
   }
 
   final Pointer<Void> _handle;
@@ -184,7 +210,27 @@ class PrototypeNativeBridge {
   final _PatternDart _selectPattern;
   final _SoundDart _setSound;
   final _NoteDart _setNote;
+  final _UpdateDart _updateTrack;
+  final _AllocDart _allocate;
+  final _FreeDart _free;
   bool _disposed = false;
+  bool updateTrack(int pattern, int track, GrooveTrack data) {
+    _checkOpen();
+    if(data.notes.length!=16) throw ArgumentError('Track requires 16 notes');
+    final memory=_allocate(sizeOf<_TrackConfigNative>());
+    if(memory==nullptr) throw StateError('Cannot allocate track state');
+    try {
+      final pointer=memory.cast<_TrackConfigNative>();
+      final config=pointer.ref;
+      config.mask=data.mask; config.accents=data.accents; config.level=data.level;
+      config.muted=data.muted ? 1 : 0;
+      config.pitch=data.sound.pitch; config.decay=data.sound.decay; config.tone=data.sound.tone;
+      config.cutoff=data.sound.cutoff; config.resonance=data.sound.resonance; config.envelope=data.sound.envelope;
+      config.waveform=data.sound.waveform; config.flags=data.flags;
+      for(var i=0;i<16;i++) { config.notes[i]=data.notes[i]; }
+      return _updateTrack(_handle,pattern,track,pointer)!=0;
+    } finally { _free(memory); }
+  }
   bool setSound(int pattern, int track, GrooveSound sound) {
     _checkOpen();
     return _setSound(_handle, pattern, track, sound.pitch, sound.decay, sound.tone,

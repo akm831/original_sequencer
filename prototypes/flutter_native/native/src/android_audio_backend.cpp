@@ -44,6 +44,8 @@ bool AndroidAudioBackend::start() noexcept {
 bool AndroidAudioBackend::openStreamLocked() noexcept {
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
+    builder.setUsage(oboe::Usage::Media);
+    builder.setContentType(oboe::ContentType::Music);
     builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     builder.setSharingMode(oboe::SharingMode::Exclusive);
     builder.setFormat(oboe::AudioFormat::Float);
@@ -141,6 +143,10 @@ bool AndroidAudioBackend::setTrack(std::uint32_t pattern, std::uint32_t track, s
     return sequencer_.setTrack(pattern, track, mask, accents, level, muted);
 }
 
+bool AndroidAudioBackend::setTrackData(std::uint32_t pattern, std::uint32_t track, const PrototypeSequencer::Track& data) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setTrackData(pattern,track,data);
+}
 bool AndroidAudioBackend::setSound(std::uint32_t pattern, std::uint32_t track, SoundSettings sound) noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
     return sequencer_.setSound(pattern,track,sound);

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'groove_project.dart';
+import 'audio_focus_gate.dart';
+import 'project_importer.dart';
 import 'native_bridge.dart';
 import 'sequencer_panel.dart';
 import 'diagnostics_screen.dart';
@@ -34,6 +36,11 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   Object? _bridgeError;
   String? _triggerStatus;
   static const _storage = MethodChannel('original_sequencer/project');
+  static const _focusChannel = MethodChannel('original_sequencer/audio_focus');
+  late final AudioFocusGate _focus;
+  bool _foreground=true;
+  int _playRequest=0;
+  Timer? _testFocusTimer;
   GrooveProject _project = GrooveProject.initial();
   int _editingPattern = 0, _track = 0;
   Timer? _saveTimer;
@@ -45,6 +52,15 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _focus=AudioFocusGate(request:() async => await _focusChannel.invokeMethod<bool>('request') ?? false,
+      abandon:() async { await _focusChannel.invokeMethod<void>('abandon'); });
+    _focusChannel.setMethodCallHandler((call) async {
+      if(call.method=='lost' && mounted) {
+        await _setPlaying(false);
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:Text('音声の使用権が変わったため停止しました。再生ボタンで再開できます。')));
+      }
+    });
     _playheadTicker = createTicker((_) => _refreshPlayhead());
     _initialiseProject();
   }
@@ -66,14 +82,8 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     if (mounted) setState(() {});
   }
 
-  bool _sendTrack(PrototypeNativeBridge bridge, int p, int t, GrooveTrack data) {
-    if (!bridge.setTrack(p,t,data.mask,data.accents,data.level,data.muted) ||
-        !bridge.setSound(p,t,data.sound)) return false;
-    for (var step=0; step<16; step++) {
-      if (!bridge.setNote(p,t,step,data.notes[step], (data.flags & (1<<step)) != 0)) return false;
-    }
-    return true;
-  }
+  bool _sendTrack(PrototypeNativeBridge bridge, int p, int t, GrooveTrack data) =>
+    bridge.updateTrack(p,t,data);
 
   void _applyProject(PrototypeNativeBridge bridge) {
     if (!bridge.setBpm(_project.bpm)) throw StateError('BPM unavailable');
@@ -103,6 +113,58 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       if (mounted && source == _project.encode()) setState(() => _saveStatus = '保存済み');
     } catch (error) {
       if (mounted) setState(() => _saveStatus = '保存できませんでした。保存ボタンで再試行できます');
+    }
+  }
+
+  Future<void> _exportProject() async {
+    try {
+      await _setPlaying(false);
+      final source=_saveBlocked ? await _storage.invokeMethod<String>('load') : _project.encode();
+      if(source==null) throw StateError('Project is unavailable');
+      final saved=await _storage.invokeMethod<bool>('export',source);
+      if(mounted && saved==true) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('プロジェクトをファイルへ書き出しました。')));
+    } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('書き出せませんでした。保存先を変えて再試行してください。')));
+    }
+  }
+
+  Future<void> _importProject() async {
+    try {
+      await _setPlaying(false);
+      await ProjectImporter(
+        read:()=>_storage.invokeMethod<String>('import'),
+        confirm:(imported) async {
+          if(!mounted) return false;
+          return await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
+            title:const Text('プロジェクトを読み込みますか？'),
+            content:Text('4パターン・音色・BPMを置き換えます。読み込み前の内部保存は別名で保管します。\nBPM: ${imported.bpm.round()}'),
+            actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('キャンセル')),
+              FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('読み込む'))],
+          )) ?? false;
+        },
+        backup:() async {
+          if(!mounted || _bridge==null) return false;
+          return await _storage.invokeMethod<bool>('backup_original')==true;
+        },
+        commit:(imported) async {
+          if(!mounted) throw StateError('Screen closed');
+          final bridge=_bridge;
+          if(bridge==null) throw StateError('Native audio is unavailable');
+          final original=_project;
+          _project=imported;
+          try { _applyProject(bridge); }
+          catch (_) { _project=original; _applyProject(bridge); rethrow; }
+          setState(() { _editingPattern=imported.selectedPattern; _saveBlocked=false; });
+          _refreshDiagnostics();
+          _saveTimer?.cancel();
+          await _saveProject();
+        },
+      ).run();
+    } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('読み込めませんでした。対応するプロジェクトJSONを選んでください。')));
     }
   }
 
@@ -214,6 +276,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     try {
       final diagnostics = bridge.diagnostics();
       final sequence = bridge.sequenceState();
+      if ((_sequence?.running ?? false) && !sequence.running) _focus.cancel();
       if (mounted) {
         setState(() {
           _diagnostics = diagnostics;
@@ -236,6 +299,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     try {
       final next = bridge.sequenceState();
       final previous = _sequence;
+      if ((previous?.running ?? false) && !next.running) _focus.cancel();
       if (previous == null ||
           next.currentStep != previous.currentStep ||
           next.running != previous.running ||
@@ -269,9 +333,31 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Leaving the app always stops transport; returning never auto-plays.
     if (state != AppLifecycleState.resumed) { _saveTimer?.cancel(); _saveProject(); }
-    if (state != AppLifecycleState.resumed && (_sequence?.running ?? false)) {
-      _control((bridge) => bridge.setPlaying(false));
+    _foreground=state==AppLifecycleState.resumed;
+    if (!_foreground) _setPlaying(false);
+  }
+
+  Future<void> _setPlaying(bool playing) async {
+    final request=++_playRequest;
+    _testFocusTimer?.cancel();
+    if(!playing) {
+      _control((b)=>b.setPlaying(false));
+      await _focus.cancel();
+      return;
     }
+    if(!_foreground) return;
+    final granted=await _focus.acquire();
+    if(!mounted || !_foreground || request!=_playRequest) return;
+    if(!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:Text('音声を使用できません。ほかのアプリの再生を止めて再試行してください。')));
+      return;
+    }
+    final accepted=_control((b) {
+      if(!b.selectPattern(_editingPattern)) return false;
+      return b.setPlaying(true);
+    });
+    if(!accepted) await _focus.cancel();
   }
 
   bool _control(bool Function(PrototypeNativeBridge) action) {
@@ -288,9 +374,16 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     }
   }
 
-  void _trigger() {
+  Future<void> _trigger() async {
     final bridge = _bridge;
-    if (bridge == null) return;
+    if (bridge == null || !_foreground) return;
+    final request=++_playRequest;
+    final granted=await _focus.acquire();
+    if(!mounted || !_foreground || !granted || request!=_playRequest) return;
+    _testFocusTimer?.cancel();
+    _testFocusTimer=Timer(const Duration(milliseconds:100),() {
+      if(!(_sequence?.running ?? false)) _focus.cancel();
+    });
     try {
       final accepted = bridge.scheduleTrigger(delayFrames: 37);
       setState(() {
@@ -308,6 +401,10 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ++_playRequest;
+    _testFocusTimer?.cancel();
+    _focusChannel.setMethodCallHandler(null);
+    _focus.dispose();
     _saveTimer?.cancel();
     _playheadTicker.dispose();
     _audioStatus.dispose();
@@ -329,7 +426,12 @@ class _PrototypeScreenState extends State<PrototypeScreen>
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => DiagnosticsScreen(status: _audioStatus, onTest: _trigger),
           )),
-        )],
+        ), PopupMenuButton<String>(tooltip:'プロジェクト',enabled:!_loading,onSelected:(value) {
+          if(value=='export') _exportProject(); else _importProject();
+        },itemBuilder:(_)=>[
+          const PopupMenuItem(value:'export',child:Text('ファイルへ書き出す')),
+          PopupMenuItem(value:'import',enabled:ready,child:const Text('ファイルから読み込む')),
+        ])],
       ),
       body: LayoutBuilder(builder: (context, constraints) {
         final content = Column(children: [
@@ -342,7 +444,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
                 _scheduleSave();
               } : null,
               style: OutlinedButton.styleFrom(backgroundColor: _editingPattern == p ? Colors.deepPurple.shade50 : null),
-              child: Text('${String.fromCharCode(65 + p)}${_sequence?.queuedPattern == p ? '…' : (_sequence?.currentPattern == p ? ' ▶' : '')}'),
+              child: Text('${String.fromCharCode(65 + p)}${_sequence?.queuedPattern == p ? '…' : ((_sequence?.running ?? false) && _sequence?.currentPattern == p ? ' ▶' : '')}'),
             ),
           ))),
         )),
@@ -368,8 +470,8 @@ class _PrototypeScreenState extends State<PrototypeScreen>
           onAccent: _openStepEditor,
           notes: _track==3 ? _project.patterns[_editingPattern][_track].notes : null,
           flags: _project.patterns[_editingPattern][_track].flags,
-          bass: _track==3,
-          onPlaying: (playing) => _control((b) => b.setPlaying(playing)),
+          bass: _track==3, hat: _track==2,
+          onPlaying: _setPlaying,
           onBpm: (bpm) {
             if (!_control((b) => b.setBpm(bpm))) return;
             setState(() => _project = _project.copy(bpm: bpm)); _scheduleSave();

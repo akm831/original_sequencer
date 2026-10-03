@@ -12,7 +12,9 @@
 - Version付きJSONの自動保存 / 手動保存 / 再起動時復元。AtomicFileで旧保存を保護し、未知Schema / 読み込み失敗では上書き停止。
 - Android Version 0.0.3+3。GitHub Actions Run `37130262542`でC++ tests 7本、Flutter analyze、Flutter tests 11本、ARM64 Debug APK / Native Library Packagingすべて成功。Artifact `11276104349`（2026-10-17まで）。PR #6をmain `08c33c0`へ統合済み。ユーザーが実機で「かなりよく動く」と確認。診断画像はmissedSteps / Overflow / Restart 0、48 kHz / 96 frames、p99 5%、Peak 41.32%。保存復元の個別確認は未報告。
 
-- Version 0.0.4+4: Analog Percussion、Saw / Square Acid Bass、Pitch / Tone / Decay / Cutoff / Resonance / Filter Envelope、Bass Note / Accent / Slide、Hat開閉、Schema 1→2 Migrationを実装。新APKとCI結果は最新PR参照。
+- Version 0.0.4+4: Analog Percussion、Saw / Square Acid Bass、Pitch / Tone / Decay / Cutoff / Resonance / Filter Envelope、Bass Note / Accent / Slide、Hat開閉、Schema 1→2 Migrationを実装。Run `37132997199`でC++ tests 8本 / Flutter tests 14本 / analyze / ARM64 APK / Exported FFI Symbols検査が成功。PR #7をmain `b85aae8`へ統合。Artifact `11277543381`。音色の実機確認は未実施。
+
+- Version 0.0.5+5: 一括Track更新、Stop Fade / Retrigger smoothing、密な音源Stress Test、文字拡大Grid、Play Bank整合、保存Read上限、Audio Focus / 非同期Grant取消を追加。公開テスト用署名の固定と証明書検査、JSON Import / Export、読めない保存のRaw Exportを追加。CI結果は最新PR参照。懸念点の台帳はdocs/android-audio-review.md、初回署名移行はdocs/android-update-backup.md。
 
 ## Important Decisions
 
@@ -24,4 +26,4 @@ Audio Callbackにallocation / lock / File I/Oを持ち込まない。Core Musica
 
 ## References
 
-AGENTS.md、docs/decisions.md、docs/android-groovebox.md、docs/roadmap.md、docs/pattern.md、docs/persistence.md。
+AGENTS.md、docs/decisions.md、docs/android-groovebox.md、docs/roadmap.md、docs/pattern.md、docs/persistence.md、docs/android-audio-review.md。

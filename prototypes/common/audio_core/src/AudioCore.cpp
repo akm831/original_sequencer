@@ -169,6 +169,8 @@ void AudioCore::renderOutput(const OutputView& output, std::uint32_t frameCount,
                 std::fill_n(output.planar[channel] + output.offset, frameCount, 0.0F);
         }
     }
+    const auto active=activeSequenceGeneration_.load(std::memory_order_acquire);
+    for (auto& voice : drums_) voice.cancelGeneration(active);
     consumeCommands(output, callbackStartFrame, frameCount);
 }
 

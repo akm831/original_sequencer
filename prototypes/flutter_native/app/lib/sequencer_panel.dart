@@ -5,7 +5,7 @@ import 'native_bridge.dart';
 // Presentation only: callbacks send intents to the native transport.
 class SequencerPanel extends StatelessWidget {
   const SequencerPanel({super.key, required this.sequence, required this.ready,
-    required this.onPlaying, required this.onBpm, required this.onStep, this.onAccent, this.accentMask = 0, this.notes, this.flags = 0, this.bass = false});
+    required this.onPlaying, required this.onBpm, required this.onStep, this.onAccent, this.accentMask = 0, this.notes, this.flags = 0, this.bass = false, this.hat = false});
 
   final PrototypeSequenceState? sequence;
   final bool ready;
@@ -13,7 +13,7 @@ class SequencerPanel extends StatelessWidget {
   final int accentMask;
   final List<int>? notes;
   final int flags;
-  final bool bass;
+  final bool bass, hat;
   final ValueChanged<bool> onPlaying;
   final ValueChanged<double> onBpm;
   final void Function(int, bool) onStep;
@@ -48,14 +48,19 @@ class SequencerPanel extends StatelessWidget {
             Icon(running ? Icons.graphic_eq : Icons.pause_circle_outline,
               size: 18, color: running ? Colors.deepPurple : Colors.grey),
             const SizedBox(width: 6),
-            Expanded(child: Text(ready ? (running ? '再生中' : '停止中') : '音声を準備できませんでした')),
-            const Text('1小節 · 16ステップ'),
+            Expanded(child: Text(ready ? (running ? '再生中' : '停止中') : '音声を準備できませんでした',
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
+            const Flexible(flex: 2, child: Text('1小節 · 16ステップ',
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
           ]),
           const SizedBox(height: 12),
           Expanded(child: LayoutBuilder(builder: (context, constraints) {
             // Keep useful touch targets on short screens; only the grid scrolls.
             final width = math.min(constraints.maxWidth, 520.0);
-            final height = math.max(216.0, math.min(constraints.maxHeight, 408.0));
+            final scaler = MediaQuery.textScalerOf(context);
+            final minimum = notes == null ? 216.0 : math.max(288.0,
+              (scaler.scale(20)+scaler.scale(11))*1.6*4+24);
+            final height = math.max(minimum, math.min(constraints.maxHeight, 408.0));
             return SingleChildScrollView(
               child: Center(child: SizedBox(width: width, height: height,
                 child: GridView.count(
@@ -85,9 +90,10 @@ class SequencerPanel extends StatelessWidget {
                         onPressed: ready ? () => onStep(step, !enabled) : null,
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Text('${step+1}${(accentMask & (1<<step)) != 0 ? '•' : ''}',
-                            style: const TextStyle(fontSize: 20,fontWeight: FontWeight.w600)),
-                          if(notes!=null) Text('${noteName(notes![step])}${(flags & (1<<step)) != 0 ? ' ↗' : ''}',style: const TextStyle(fontSize: 11)),
-                          if(!bass && (flags & (1<<step)) != 0) const Text('OPEN',style: TextStyle(fontSize: 10)),
+                            maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20,fontWeight: FontWeight.w600)),
+                          if(notes!=null) Text('${noteName(notes![step])}${(flags & (1<<step)) != 0 ? ' ↗' : ''}',
+                            maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+                          if(hat && (flags & (1<<step)) != 0) const Text('OPEN',style: TextStyle(fontSize: 10)),
                         ]),
                       ),
                     ));

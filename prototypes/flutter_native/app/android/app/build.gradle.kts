@@ -1,8 +1,15 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Public prototype-only identity; never a production signing key.
+val prototypeDebugKeystore = layout.buildDirectory.file("test-signing/debug.p12").get().asFile
+prototypeDebugKeystore.parentFile.mkdirs()
+prototypeDebugKeystore.writeBytes(Base64.getMimeDecoder().decode(file("../test-signing/debug.p12.base64").readText()))
 
 android {
     namespace = "com.originalsequencer.prototype"
@@ -50,9 +57,20 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = prototypeDebugKeystore
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeType = "PKCS12"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // Production release signing must be configured separately.
+            signingConfig = null
         }
     }
 }
