@@ -105,6 +105,17 @@ int main() {
     prototype_stop_audio(handle);
     assert(prototype_set_playing(handle, 1) == 0);
     assert(prototype_get_sequence_state(handle).step_mask == 0x1113);
+    prototype_initialize(handle, 48000, 256);
+    assert(prototype_set_track(nullptr,0,0,1,0,1,0) == 0);
+    assert(prototype_set_track(handle,4,0,1,0,1,0) == 0);
+    assert(prototype_select_pattern(handle,4) == 0);
+    assert(prototype_set_track(handle,2,0,1,1,.8F,0) == 1);
+    assert(prototype_select_pattern(handle,2) == 1);
+    assert(prototype_get_sequence_state(handle).current_pattern == 2);
+    assert(prototype_set_playing(handle,1) == 1);
+    for (int i=0; i<20; ++i) prototype_render_for_test(handle,output.data(),96,2);
+    assert(prototype_get_sequence_state(handle).current_pattern == 2);
+    assert(prototype_get_diagnostics(handle).trigger_count == 1);
     prototype_destroy(handle);
     prototype_destroy(nullptr);
     return 0;

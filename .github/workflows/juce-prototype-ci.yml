@@ -1,16 +1,6 @@
 name: JUCE prototype Android APK
 
 on:
-  push:
-    paths:
-      - 'prototypes/juce/**'
-      - 'prototypes/common/audio_core/**'
-      - '.github/workflows/juce-prototype-ci.yml'
-  pull_request:
-    paths:
-      - 'prototypes/juce/**'
-      - 'prototypes/common/audio_core/**'
-      - '.github/workflows/juce-prototype-ci.yml'
   workflow_dispatch:
 
 permissions:

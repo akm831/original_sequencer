@@ -136,6 +136,16 @@ bool AndroidAudioBackend::setStep(std::uint32_t step, bool enabled) noexcept {
     return sequencer_.setStep(step, enabled);
 }
 
+bool AndroidAudioBackend::setTrack(std::uint32_t pattern, std::uint32_t track, std::uint32_t mask, std::uint32_t accents, float level, bool muted) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setTrack(pattern, track, mask, accents, level, muted);
+}
+
+bool AndroidAudioBackend::selectPattern(std::uint32_t pattern) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.selectPattern(pattern);
+}
+
 SequenceState AndroidAudioBackend::sequenceState() noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
     return sequencer_.state();

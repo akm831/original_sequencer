@@ -33,7 +33,11 @@ typedef struct PrototypeSequenceState {
     uint32_t step_mask;
     uint32_t current_step;
     uint64_t missed_steps;
+    uint32_t current_pattern;
+    uint32_t queued_pattern;
 } PrototypeSequenceState;
+PROTOTYPE_FFI_EXPORT int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint32_t mask, uint32_t accents, float level, int32_t muted);
+PROTOTYPE_FFI_EXPORT int32_t prototype_select_pattern(void* handle, uint32_t pattern);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_playing(void* handle, int32_t playing);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_bpm(void* handle, double bpm);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_step(void* handle, uint32_t step, int32_t enabled);

@@ -59,12 +59,14 @@ void AudioCore::shutdown() noexcept {
 bool AudioCore::enqueueCommand(const AudioCommand& command) noexcept {
     if ((command.type != AudioCommandType::trigger && command.type != AudioCommandType::sequenceStep)
         || (command.sequenceGeneration != 0 && command.sequenceStep > 16)
+        || command.voice > 4 || command.sequencePattern > 3
         || !std::isfinite(command.value)
         || command.value < 0.0F || command.value > 1.0F) return false;
     return commandQueue_.tryPush(command);
 }
 
 void AudioCore::clearBurst() noexcept {
+    drums_ = {};
     burstPhase_ = 0.0;
     burstAmplitude_ = 0.0F;
     burstRemaining_ = 0;
@@ -72,20 +74,38 @@ void AudioCore::clearBurst() noexcept {
 }
 
 void AudioCore::renderBurst(const OutputView& output, std::uint32_t begin, std::uint32_t end) noexcept {
-    if (sampleRate_ <= 0.0 || burstRemaining_ == 0) return;
-    const auto increment = 2.0 * std::numbers::pi_v<double> * 220.0 / sampleRate_;
-    for (auto frame = begin; frame < end && burstRemaining_ > 0; ++frame) {
-        const auto envelope = static_cast<float>(burstRemaining_) / static_cast<float>(burstLength_);
-        const auto value = static_cast<float>(std::cos(burstPhase_)) * burstAmplitude_ * envelope;
+    if (sampleRate_ <= 0.0) return;
+    const auto tau = 2.0 * std::numbers::pi_v<double>;
+    for (auto frame = begin; frame < end; ++frame) {
+        float value = 0;
+        if (burstRemaining_ > 0) {
+            const auto envelope = static_cast<float>(burstRemaining_) / burstLength_;
+            value = static_cast<float>(std::cos(burstPhase_)) * burstAmplitude_ * envelope;
+            burstPhase_ += tau * 220.0 / sampleRate_;
+            if (burstPhase_ >= tau) burstPhase_ -= tau;
+            --burstRemaining_;
+        }
+        for (std::size_t i = 0; i < drums_.size(); ++i) {
+            auto& voice = drums_[i];
+            if (voice.remaining == 0) continue;
+            const auto envelope = static_cast<double>(voice.remaining) / voice.length;
+            voice.noise ^= voice.noise << 13; voice.noise ^= voice.noise >> 17; voice.noise ^= voice.noise << 5;
+            const auto noise = static_cast<double>(voice.noise) / 2147483648.0 - 1.0;
+            const auto frequency = i == 0 ? 45.0 + 100.0 * envelope * envelope : (i == 3 ? 110.0 : 180.0);
+            voice.phase += tau * frequency / sampleRate_;
+            if (voice.phase >= tau) voice.phase -= tau;
+            const auto tone = std::sin(voice.phase);
+            const auto wave = i == 1 ? noise * 0.8 + tone * 0.2 : (i == 2 ? noise : tone);
+            value += static_cast<float>(wave * envelope * envelope * voice.amplitude);
+            --voice.remaining;
+        }
+        value = std::clamp(value, -0.8F, 0.8F);
         for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
             if (output.interleaved != nullptr)
                 output.interleaved[static_cast<std::size_t>(frame) * output.channels + channel] = value;
             else if (output.planar != nullptr && output.planar[channel] != nullptr)
                 output.planar[channel][static_cast<std::size_t>(output.offset) + frame] = value;
         }
-        burstPhase_ += increment;
-        if (burstPhase_ >= 2.0 * std::numbers::pi_v<double>) burstPhase_ -= 2.0 * std::numbers::pi_v<double>;
-        --burstRemaining_;
     }
 }
 
@@ -111,6 +131,7 @@ void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callback
         renderBurst(output, cursor, offset);
         cursor = offset;
         if (pendingCommand_.sequenceGeneration != 0 && pendingCommand_.sequenceStep < 16) {
+            playedSequencePattern_.store(pendingCommand_.sequencePattern, std::memory_order_relaxed);
             playedSequenceStep_.store(pendingCommand_.sequenceStep, std::memory_order_relaxed);
             playedSequenceGeneration_.store(pendingCommand_.sequenceGeneration, std::memory_order_release);
         }
@@ -120,7 +141,18 @@ void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callback
         }
         diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
         diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
-        clearBurst();
+        if (pendingCommand_.voice > 0 && sampleRate_ > 0.0) {
+            auto& voice = drums_[pendingCommand_.voice - 1];
+            constexpr std::array<double, 4> durations{0.16, 0.12, 0.04, 0.20};
+            voice.length = static_cast<std::uint32_t>(std::clamp(sampleRate_ * durations[pendingCommand_.voice - 1], 1.0, 96000.0));
+            voice.remaining = voice.length;
+            voice.phase = 0;
+            voice.noise = 0x9e3779b9U + pendingCommand_.voice;
+            voice.amplitude = pendingCommand_.value * 0.16F;
+            hasPendingCommand_ = false;
+            continue;
+        }
+        burstPhase_ = 0; burstRemaining_ = 0;
         if (sampleRate_ > 0.0 && std::isfinite(sampleRate_)) {
             // P3 test voice: a monophonic 50 ms decaying cosine burst, max 8%.
             burstLength_ = static_cast<std::uint32_t>(std::clamp(sampleRate_ * 0.05, 1.0, 96000.0));
@@ -212,6 +244,7 @@ DiagnosticsSnapshot AudioCore::diagnostics() const noexcept {
         .lastTriggerOffset = diagnosticLastTriggerOffset_.load(std::memory_order_relaxed),
         .sequenceStep = playedSequenceGeneration_.load(std::memory_order_acquire) == activeSequenceGeneration_.load(std::memory_order_acquire)
             ? playedSequenceStep_.load(std::memory_order_relaxed) : 16U,
+        .sequencePattern = playedSequencePattern_.load(std::memory_order_relaxed),
     };
 }
 

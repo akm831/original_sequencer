@@ -5,10 +5,12 @@ import 'native_bridge.dart';
 // Presentation only: callbacks send intents to the native transport.
 class SequencerPanel extends StatelessWidget {
   const SequencerPanel({super.key, required this.sequence, required this.ready,
-    required this.onPlaying, required this.onBpm, required this.onStep});
+    required this.onPlaying, required this.onBpm, required this.onStep, this.onAccent, this.accentMask = 0});
 
   final PrototypeSequenceState? sequence;
   final bool ready;
+  final ValueChanged<int>? onAccent;
+  final int accentMask;
   final ValueChanged<bool> onPlaying;
   final ValueChanged<double> onBpm;
   final void Function(int, bool) onStep;
@@ -64,6 +66,8 @@ class SequencerPanel extends StatelessWidget {
                     return Semantics(
                       label: 'ステップ ${step + 1}${current ? '、再生位置' : ''}',
                       toggled: enabled,
+                      child: GestureDetector(
+                      onLongPress: ready && onAccent != null ? () => onAccent!(step) : null,
                       child: OutlinedButton(
                         key: Key('step-$step'),
                         style: OutlinedButton.styleFrom(
@@ -76,9 +80,9 @@ class SequencerPanel extends StatelessWidget {
                             width: current ? 4 : 1),
                         ),
                         onPressed: ready ? () => onStep(step, !enabled) : null,
-                        child: Text('${step + 1}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+                        child: Text('${step + 1}${(accentMask & (1 << step)) != 0 ? '•' : ''}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
                       ),
-                    );
+                    ));
                   }),
                 ),
               )),
