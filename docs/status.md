@@ -42,7 +42,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 
 ## Current Topic
 
-Technology Prototype: P4 UI整理 / 再生安定性
+Technology Prototype: JUCE P4接続 / 両候補の実機比較
 
 現在の到達点:
 
@@ -72,12 +72,15 @@ P4の実装:
 - ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。Run `37117846090`でC++ tests 5本、Flutter analyze、ARM64 APK build、Native Library Packagingが成功。Artifact `11271858961`、PR #3をmainへ統合済み。ユーザーが修正版について「概ねいい感じに動いている」と確認済み（2026-10-03）。画像ではmissedSteps 0、Queue Overflow 0、Restart 0、48 kHz / 96 frames、p95 0.6% / p99 0.8%。同期の定量測定は未実施
 - メインをTransport / BPM / 4×4 Gridへ整理し、診断と単発テストを別画面へ移動。縦画面で全Step表示、狭い横画面ではGridのみScroll。App離脱時はTransport停止、復帰時は自動再生しない
 - Run `37124704514`でC++ tests 6本、Flutter analyze、Widget tests 7本、ARM64 APK Build / Native Library Packagingが成功。Artifact `11274344868`（2026-10-17まで）、Version 0.0.2+2、PR #4をmainへ統合。画面サイズ / 文字倍率 / 操作Intent / 診断更新と、Coreの30分相当×2 Sample Rates、可変Buffer、1000回×2のStop / Play、Device Resetを自動検証済み。実Deviceの長時間負荷 / Route Changeは別途必要
-- JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
+- Flutterの新UIについてユーザーが動作良好と確認（2026-10-03）。画像では48 kHz / callback 96、missedSteps / Overflow / Restart 0、p95 0.6% / p99 0.8%。App離脱とRoute Changeは未確認
+- JUCEに共有PrototypeSequencer、5 ms Control Thread、Play / Stop、60〜240 BPM、16 Steps、停止中の単発テスト、診断切り替えを接続。UI Timerは60 Hzで実行済み位置を観測し、負荷診断は5 Hz。Suspend時に停止、Resume時は自動再生しない
+- JUCE 9.0.2 HeaderでMain.cpp構文検査成功。Android自動Buildを追加し、Projucer Export → NDK / Java設定固定 → JNI同梱検査 → ARM64 APK Artifact保存を検証中
+- JUCEのApplication IDをcom.originalsequencer.juceprototypeへ分離し、Flutter版と併存可能にした。JUCE P4実機確認と技術選定は未完了
 
 次に進める主題:
 
-1. 整理後のUIとアプリ離脱時の停止を実機 / M4 MacのARM64 Emulatorで確認
-2. JUCEへ同等のP4経路を接続し実機比較
+1. JUCE P4 APKの実機発音、BPM / Step編集、停止／再開、診断を確認
+2. Flutter / JUCEを同じDevice・同じPattern / BPMで比較
 3. Device Restart / Route Change、Live Pad独立経路の検証
 
 ## Important Current Decisions
@@ -119,4 +122,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-UI整理と安定性自動検証を進めた。次の人による確認は新UI、画面離脱／復帰、実音声Route Change。Technology確定にはJUCE同等経路の実機比較が残る。基本音源 / 複数Track / 保存機能はその後。
+JUCE P4のAPKを用意して実機比較へ進む。比較手順はdocs/framework-comparison.mdへ記録。P4だけでTechnologyを確定せず、Live Pad、Poly Voice / Benchmark、Route Change、iOS Must Smokeなど既存Gateを維持する。

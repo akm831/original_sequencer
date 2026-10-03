@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="OSqP01" name="SequencerPrototype" projectType="guiapp" version="0.0.1"
-              bundleIdentifier="com.originalsequencer.prototype" companyName="original_sequencer"
+<JUCERPROJECT id="OSqP01" name="SequencerJUCE" projectType="guiapp" version="0.0.2"
+              bundleIdentifier="com.originalsequencer.juceprototype" companyName="original_sequencer"
               useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
               cppLanguageStandard="20">
   <MAINGROUP id="OSqMain" name="SequencerPrototype">
@@ -18,8 +18,8 @@
     <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="24" androidTargetSDK="36"
                    headerPath="../common/audio_core/include">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" headerPath="../../../common/audio_core/include"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3" headerPath="../../../common/audio_core/include"/>
+        <CONFIGURATION name="Debug" androidArchitectures="arm64-v8a" isDebug="1" optimisation="1" headerPath="../../../common/audio_core/include"/>
+        <CONFIGURATION name="Release" androidArchitectures="arm64-v8a" isDebug="0" optimisation="3" headerPath="../../../common/audio_core/include"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../JUCE/modules"/>

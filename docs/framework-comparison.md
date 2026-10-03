@@ -346,3 +346,15 @@ Technology固有の事実確認には一次資料を優先します。
 - Apple AVAudioSession I/O Buffer Duration: https://developer.apple.com/documentation/avfaudio/avaudiosession/iobufferduration
 - Web Audio AudioWorkletProcessor: https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletProcessor/process
 - Web Audio currentFrame: https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletGlobalScope/currentFrame
+
+## 2026-10-03 — P4同条件比較手順
+
+FlutterのUI / P4発音はユーザーが良好と確認済み。JUCE P4は実装とBuild検証を進め、実機結果は別途記録する。比較時はFlutter版とJUCE版を同時に再生しない。
+
+1. 同じAndroid実機、同じ音量 / 出力Routeで各候補を起動。初期120 BPM、Steps 1 / 5 / 9 / 13の4つ打ちを比較
+2. 全16 Stepsを有効化し、60 / 123 / 240 BPMでテンポとPlayheadを確認。Pattern編集、Stop / Play、診断画面への移動を比較
+3. 各候補でsampleRate、callbackFrames min / max、Load P95 / P99 / Peak、Queue high-water / overflow、missedSteps、Restart Countを記録。Peakは単発だけで優劣を決めない
+4. 各10分の再生、UI操作中の音切れ、Home / Resume、利用可能な音声Route Changeを確認。Suspend後は自動再生しない
+5. UIの操作感、表示と音の同期、Build / Debug負担を記録
+
+M4 MacのARM64 EmulatorはUI / 基本動作確認に利用する。Audio Deadline / Latency / Device Routeの比較値は実機で評価する。P4は1 Voiceの検証音のみで、32 Voice Benchmark、Live Pad、Sampler / Synth、iOS Must Smokeの代わりにはならない。

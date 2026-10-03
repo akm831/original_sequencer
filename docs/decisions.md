@@ -545,3 +545,11 @@ Pattern保存、複数Track、Sampler / Synth、JUCE P4はこのCheckpointの対
 PrototypeのApp離脱時はTransportを停止し、復帰時に自動再生しない。Audio Device Stream自体は維持する。このCheckpointでBackground Playback / Audio Focusの製品仕様は確定しない。別画面へのApp内移動では再生を継続する。
 
 ユーザーのM4 Macでは現在のARM64 APKとARM64 AVDを使う。EmulatorはUI / 操作確認へ利用し、実音声Latency / Route Change / 継続負荷は実機評価を維持する。技術選定はJUCE同等経路の比較を残しており、このUI整理でFlutter採用を確定しない。
+
+## 2026-10-03 — JUCE P4比較と自動APK経路
+
+JUCEにも共有PrototypeSequencerを接続し、Android / Flutterと同じ960 PPQN、16 Steps、60〜240 BPM、約50 ms Lookahead、50 ms / 220 Hz検証Voiceを使う。JUCEのControl Threadが5 ms周期で予約し、Message Threadは観測と操作のみ、Audio CallbackはPlanar出力のSample Offset実行のみ。SuspendでTransport停止、Resumeは停止を維持する。
+
+JUCE Androidは既存のProjucer Export経路を自動化する。JUCE 9.0.2をCommit `72782788ce18c2d4d760b28e0921d6ffc6431102`で検証し、SDK 36 / min 24、NDK 28.2.13676358、JDK 17を固定する。Exporterが固定出力するNDK 28.1とJava 8 toolchainだけ生成後Scriptで調整し、Java 8 bytecode互換性は保つ。生成Gradle Projectは保存元にせず.jucerとScriptを正本とする。
+
+Application IDはcom.originalsequencer.juceprototypeとしてFlutterと同時Install可能にする。P4 Build成功だけではTechnologyを決定せず、実機比較と既存Must Gateを維持する。
