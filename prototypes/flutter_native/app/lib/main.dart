@@ -37,7 +37,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   GrooveProject _project = GrooveProject.initial();
   int _editingPattern = 0, _track = 0;
   Timer? _saveTimer;
-  bool _saveBlocked = false;
+  bool _saveBlocked = false, _loading = true;
   String _saveStatus = '読み込み中';
   final _audioStatus = ValueNotifier(const AudioStatus(null, null, null, null));
 
@@ -61,7 +61,9 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       _saveBlocked = true;
       _saveStatus = '保存データを読めないため、上書き保存を停止しています';
     }
+    _loading = false;
     _openNativeBridge();
+    if (mounted) setState(() {});
   }
 
   void _applyProject(PrototypeNativeBridge bridge) {
@@ -78,14 +80,14 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   }
 
   void _scheduleSave() {
-    if (_saveBlocked) return;
+    if (_saveBlocked || _loading) return;
     _saveTimer?.cancel();
     setState(() => _saveStatus = '未保存');
     _saveTimer = Timer(const Duration(milliseconds: 500), _saveProject);
   }
 
   Future<void> _saveProject() async {
-    if (_saveBlocked) return;
+    if (_saveBlocked || _loading) return;
     final source = _project.encode();
     try {
       await _storage.invokeMethod<bool>('save', source);
@@ -261,7 +263,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       appBar: AppBar(
         title: const Text('Groovebox'),
         actions: [IconButton(tooltip: _saveStatus, icon: const Icon(Icons.save_outlined),
-          onPressed: _saveBlocked ? null : () { _saveTimer?.cancel(); _saveProject(); }), IconButton(
+          onPressed: _saveBlocked || _loading ? null : () { _saveTimer?.cancel(); _saveProject(); }), IconButton(
           tooltip: '音声診断', icon: const Icon(Icons.monitor_heart_outlined),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => DiagnosticsScreen(status: _audioStatus, onTest: _trigger),
