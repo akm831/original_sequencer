@@ -23,7 +23,7 @@ void main() {
         home: Scaffold(appBar: AppBar(title: const Text('Sequencer')),
           body: SequencerPanel(
             sequence: const PrototypeSequenceState(120, true, 0x1111, 0, 0),
-            ready: true, onPlaying: (_) {}, onBpm: (_) {}, onStep: (_, _) {},
+            ready: true, onPlaying: (_) {}, onBpm: (_) {}, onStep: (_, __) {},
           ),
         ),
       ));
@@ -68,7 +68,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(
       appBar: AppBar(title: const Text('Sequencer')),
       body: SequencerPanel(sequence: null, ready: true,
-        onPlaying: (_) {}, onBpm: (_) {}, onStep: (_, _) {}),
+        onPlaying: (_) {}, onBpm: (_) {}, onStep: (_, __) {}),
     )));
     expect(tester.takeException(), isNull);
     final before = tester.getRect(find.byKey(const Key('transport')));
@@ -83,7 +83,7 @@ void main() {
     var calls = 0;
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SequencerPanel(
       sequence: null, ready: false, onPlaying: (_) => calls++,
-      onBpm: (_) => calls++, onStep: (_, _) => calls++,
+      onBpm: (_) => calls++, onStep: (_, __) => calls++,
     ))));
     await tester.tap(find.byKey(const Key('transport')));
     await tester.tap(find.byKey(const Key('step-0')));

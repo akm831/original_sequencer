@@ -73,11 +73,7 @@ jobs:
             'platform-tools' 'platforms;android-36' 'build-tools;36.0.0' \
             'ndk;28.2.13676358' 'cmake;3.22.1'
       - name: Resolve Dart dependencies
-        run: |
-          flutter pub get
-          echo "RESOLVED_LOCK_BEGIN"
-          cat pubspec.lock
-          echo "RESOLVED_LOCK_END"
+        run: flutter pub get
       - name: Analyze Flutter code
         run: flutter analyze --fatal-infos
       - name: Run Flutter widget tests
