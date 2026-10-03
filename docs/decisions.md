@@ -537,3 +537,11 @@ Pattern保存、複数Track、Sampler / Synth、JUCE P4はこのCheckpointの対
 実機で発音が正常だがステップ強調が遅いとの報告を受けた。50 ms周期で全画面診断を更新していたため、再生位置の観測に最大約50 msの待ちが生じていた。再生中のみFlutterのフレーム同期TickerでNativeの実行済み位置を読み、値の変化時だけ再描画する。ステップボタンのStyle AnimationはDuration.zeroへ変更する。診断は200 ms周期へ分離する。音のSchedulerや発音時刻は変更しない。
 
 表示はレンダー済み位置の観測であり、音声出力装置のPresentation Timestampとの厳密な同期ではない。画面描画と音声DeviceのLatencyは残るため、実機での改善量は別途確認する。
+
+## 2026-10-03 — P4操作画面と診断の分離
+
+メインは再生／停止、BPM、16 Stepsに絞り、音声診断とP3単発テストはAppBarから開く別画面へ移す。Gridは縦画面で利用可能な高さへ収め、短い横画面では48 logical pixels以上のTouch Targetを維持してGrid部分のみScrollする。Native Transportを保持するScreen Stateと表示Widgetを分離し、Presentationから音のSchedulingを行わない。
+
+PrototypeのApp離脱時はTransportを停止し、復帰時に自動再生しない。Audio Device Stream自体は維持する。このCheckpointでBackground Playback / Audio Focusの製品仕様は確定しない。別画面へのApp内移動では再生を継続する。
+
+ユーザーのM4 Macでは現在のARM64 APKとARM64 AVDを使う。EmulatorはUI / 操作確認へ利用し、実音声Latency / Route Change / 継続負荷は実機評価を維持する。技術選定はJUCE同等経路の比較を残しており、このUI整理でFlutter採用を確定しない。

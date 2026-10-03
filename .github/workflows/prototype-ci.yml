@@ -76,6 +76,8 @@ jobs:
         run: flutter pub get
       - name: Analyze Flutter code
         run: flutter analyze --fatal-infos
+      - name: Run Flutter widget tests
+        run: flutter test
       - name: Build test APK
         run: flutter build apk --debug --target-platform android-arm64
       - name: Verify native libraries and record build metadata
