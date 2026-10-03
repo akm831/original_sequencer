@@ -10,7 +10,7 @@ Android第一でPlayable Grooveboxを拡張。ユーザーの指示によりJUCE
 - JUCE P4 ARM64 APKもBuild済み（Run 37127513073）。実機比較は保留、Workflowは手動実行に変更。
 - 4 Tracks（Kick / Snare / Hat / Bass）、4 Patterns、各16 Steps、Accent / Volume / Muteを追加。次の未予約小節先頭でPattern切り替え。
 - Version付きJSONの自動保存 / 手動保存 / 再起動時復元。AtomicFileで旧保存を保護し、未知Schema / 読み込み失敗では上書き停止。
-- Android Version 0.0.3+3。Host回帰 / 新規Groove / Flutter Model / Widget tests、APKのCI結果は最新PRを参照。
+- Android Version 0.0.3+3。GitHub Actions Run `37130262542`でC++ tests 7本、Flutter analyze、Flutter tests 11本、ARM64 Debug APK / Native Library Packagingすべて成功。Artifact `11276104349`（2026-10-17まで）。PR #6をmain `08c33c0`へ統合済み。新機能の実機確認は未実施。
 
 ## Important Decisions
 

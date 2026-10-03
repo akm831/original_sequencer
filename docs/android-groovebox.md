@@ -22,3 +22,7 @@ Flutter Android Version 0.0.3+3。既存アプリに更新Installできる（com
 既存6 C++ testsにGroove testを追加。4音源同時合成、Stereo、発音Offset、Mute、小節先頭切り替え、Stop時予約取消、有限Tail、入力検証を確認。FlutterではJSON完全Round Trip、破損／未知Schema拒否、短い画面でのOverflow、上書き停止を確認。CIはanalyze / tests / ARM64 Debug APK / Native Library Packagingまで実行。
 
 これは製品の全Synth / Sampler仕様ではない。現在Bassは固定110 Hz、全Track長は16 Steps、各Track単一Voice。次段階でEngine選択、Notes、Sample Import、Track Lengthを追加する。
+
+## Build済みAPK
+
+[Actions Run 37130262542](https://github.com/akm831/original_sequencer/actions/runs/37130262542)のArtifacts欄から`sequencer-arm64-debug-0a274ad315322d427224fcf1281337c3bfed36d5`をDownloadし、ZIP内のapp-debug.apkを更新Install。Artifact ID 11276104349、2026-10-17まで。C++ 7 tests / Flutter 11 tests / analyze / APK / Native Library Packaging成功。PR #6をmainへ統合済み。
