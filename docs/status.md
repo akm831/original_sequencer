@@ -69,7 +69,7 @@ P4の実装:
 - BPM / Pattern変更は未予約のEventへ適用。BPMは次の未予約境界から間隔が変わる。Device Restartは停止状態へ戻し、BPM / Patternは維持
 - 無音ステップもSample Offset付きMarkerで位置を表示。Scheduler遅延は追いつき連打せずSkipし、missedStepsへ記録。Queue overflow時はTransport停止
 - Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4の実機発音はユーザー確認済み。音に対するステップ表示の遅れが報告された（2026-10-03）
-- ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。実機での改善量は未測定
+- ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。Run `37117846090`でC++ tests 5本、Flutter analyze、ARM64 APK build、Native Library Packagingが成功。Artifact `11271858961`、PR #3をmainへ統合済み。実機での改善量は未測定
 - JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
