@@ -42,7 +42,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 
 ## Current Topic
 
-Technology Prototype: P4 Transport / 16-step Lookahead
+Technology Prototype: P4 UI整理 / 再生安定性
 
 現在の到達点:
 
@@ -69,12 +69,14 @@ P4の実装:
 - BPM / Pattern変更は未予約のEventへ適用。BPMは次の未予約境界から間隔が変わる。Device Restartは停止状態へ戻し、BPM / Patternは維持
 - 無音ステップもSample Offset付きMarkerで位置を表示。Scheduler遅延は追いつき連打せずSkipし、missedStepsへ記録。Queue overflow時はTransport停止
 - Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4の実機発音はユーザー確認済み。音に対するステップ表示の遅れが報告された（2026-10-03）
-- ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。Run `37117846090`でC++ tests 5本、Flutter analyze、ARM64 APK build、Native Library Packagingが成功。Artifact `11271858961`、PR #3をmainへ統合済み。実機での改善量は未測定
+- ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。Run `37117846090`でC++ tests 5本、Flutter analyze、ARM64 APK build、Native Library Packagingが成功。Artifact `11271858961`、PR #3をmainへ統合済み。ユーザーが修正版について「概ねいい感じに動いている」と確認済み（2026-10-03）。画像ではmissedSteps 0、Queue Overflow 0、Restart 0、48 kHz / 96 frames、p95 0.6% / p99 0.8%。同期の定量測定は未実施
+- メインをTransport / BPM / 4×4 Gridへ整理し、診断と単発テストを別画面へ移動。縦画面で全Step表示、狭い横画面ではGridのみScroll。App離脱時はTransport停止、復帰時は自動再生しない
+- Widget testsで画面サイズ / 文字倍率 / 操作Intent / 診断更新を検証する。Coreの30分相当×2 Sample Rates、可変Buffer、1000回×2のStop / Play、Device Resetを自動検証する。実Deviceの長時間負荷 / Route Changeは別途必要
 - JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
 
-1. 表示遅延修正版APKで実機の音とステップ強調の同期を確認
+1. 整理後のUIとアプリ離脱時の停止を実機 / M4 MacのARM64 Emulatorで確認
 2. JUCEへ同等のP4経路を接続し実機比較
 3. Device Restart / Route Change、Live Pad独立経路の検証
 
@@ -117,4 +119,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-Flutter P4の16ステップ再生を実装済み。自動Build結果と実機確認を区別して記録する。JUCE P4、Route Change、Live Pad、製品版音源は後続。
+UI整理と安定性自動検証を進めた。次の人による確認は新UI、画面離脱／復帰、実音声Route Change。Technology確定にはJUCE同等経路の実機比較が残る。基本音源 / 複数Track / 保存機能はその後。

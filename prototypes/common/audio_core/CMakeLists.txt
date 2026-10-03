@@ -23,6 +23,10 @@ if(ORIGINAL_SEQUENCER_BUILD_TESTS)
     target_link_libraries(prototype_sequencer_smoke PRIVATE original_sequencer_audio_core)
     add_test(NAME prototype_sequencer_smoke COMMAND prototype_sequencer_smoke)
 
+    add_executable(prototype_sequencer_soak tests/prototype_sequencer_soak.cpp)
+    target_link_libraries(prototype_sequencer_soak PRIVATE original_sequencer_audio_core)
+    add_test(NAME prototype_sequencer_soak COMMAND prototype_sequencer_soak)
+
     add_executable(audio_trigger_smoke tests/audio_trigger_smoke.cpp)
     target_link_libraries(audio_trigger_smoke PRIVATE original_sequencer_audio_core)
     add_test(NAME audio_trigger_smoke COMMAND audio_trigger_smoke)

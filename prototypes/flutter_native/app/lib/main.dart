@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'native_bridge.dart';
+import 'sequencer_panel.dart';
+import 'diagnostics_screen.dart';
 
 void main() => runApp(const PrototypeApp());
 
@@ -21,7 +23,7 @@ class PrototypeScreen extends StatefulWidget {
 }
 
 class _PrototypeScreenState extends State<PrototypeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   PrototypeNativeBridge? _bridge;
   PrototypeDiagnostics? _diagnostics;
   PrototypeSequenceState? _sequence;
@@ -29,10 +31,12 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   late final Ticker _playheadTicker;
   Object? _bridgeError;
   String? _triggerStatus;
+  final _audioStatus = ValueNotifier(const AudioStatus(null, null, null, null));
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _playheadTicker = createTicker((_) => _refreshPlayhead());
     _openNativeBridge();
   }
@@ -52,6 +56,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       );
     } catch (error) {
       _bridgeError = error;
+      _publishStatus();
     }
   }
 
@@ -67,9 +72,11 @@ class _PrototypeScreenState extends State<PrototypeScreen>
           _sequence = sequence;
         });
         _syncPlayheadTicker();
+        _publishStatus();
       }
     } catch (error) {
       if (mounted) setState(() => _bridgeError = error);
+      _publishStatus();
     }
   }
 
@@ -93,6 +100,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     } catch (error) {
       _playheadTicker.stop();
       setState(() => _bridgeError = error);
+      _publishStatus();
     }
   }
 
@@ -104,6 +112,18 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     }
   }
 
+  void _publishStatus() {
+    _audioStatus.value = AudioStatus(_diagnostics, _sequence, _bridgeError, _triggerStatus);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Leaving the app always stops transport; returning never auto-plays.
+    if (state != AppLifecycleState.resumed && (_sequence?.running ?? false)) {
+      _control((bridge) => bridge.setPlaying(false));
+    }
+  }
+
   void _control(bool Function(PrototypeNativeBridge) action) {
     final bridge = _bridge;
     if (bridge == null) return;
@@ -112,6 +132,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       _refreshDiagnostics();
     } catch (error) {
       setState(() => _bridgeError = error);
+      _publishStatus();
     }
   }
 
@@ -122,18 +143,21 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       final accepted = bridge.scheduleTrigger(delayFrames: 37);
       setState(() {
         _triggerStatus = accepted
-          ? 'Trigger accepted'
-          : 'Trigger rejected: audio unavailable, queue full, or earlier timestamp';
+          ? 'テスト音を受け付けました'
+          : 'テスト音を受け付けられませんでした';
       });
       _refreshDiagnostics();
     } catch (error) {
       setState(() => _bridgeError = error);
+      _publishStatus();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _playheadTicker.dispose();
+    _audioStatus.dispose();
     _diagnosticsTimer?.cancel();
     _bridge?.dispose();
     super.dispose();
@@ -142,102 +166,22 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   @override
   Widget build(BuildContext context) {
     final d = _diagnostics;
-    final sequence = _sequence;
     final ready = _bridge != null && d != null && d.sampleRate > 0;
-    final running = sequence?.running ?? false;
     return Scaffold(
-      appBar: AppBar(title: const Text('Sequencer Prototype')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('16ステップ・シーケンサー',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Text(ready ? (running ? '再生中' : '停止中 — 再生を押すとループします') : '音声を準備中'),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: ready ? () => _control((b) => b.setPlaying(!running)) : null,
-              icon: Icon(running ? Icons.stop : Icons.play_arrow),
-              label: Text(running ? '停止' : '再生'),
-            ),
-            const SizedBox(height: 16),
-            Text('BPM ${(sequence?.bpm ?? 120).round()}'),
-            Slider(
-              min: 60,
-              max: 240,
-              divisions: 180,
-              value: sequence?.bpm ?? 120,
-              label: '${(sequence?.bpm ?? 120).round()}',
-              onChanged: ready ? (value) => _control((b) => b.setBpm(value)) : null,
-            ),
-            const Text('ステップをタップして音をオン／オフ（1小節を繰り返し）'),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.4,
-              children: List.generate(16, (step) {
-                final enabled = ((sequence?.stepMask ?? 0x1111) & (1 << step)) != 0;
-                final current = running && sequence?.currentStep == step;
-                return Semantics(
-                  label: 'ステップ ${step + 1}',
-                  toggled: enabled,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      animationDuration: Duration.zero,
-                      backgroundColor: enabled ? Colors.deepPurple : Colors.grey.shade100,
-                      foregroundColor: enabled ? Colors.white : Colors.black87,
-                      side: BorderSide(color: current ? Colors.orange : Colors.grey,
-                        width: current ? 4 : 1),
-                    ),
-                    onPressed: ready ? () => _control((b) => b.setStep(step, !enabled)) : null,
-                    child: Text('${step + 1}', style: const TextStyle(fontSize: 20)),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: ready && !running ? _trigger : null,
-              child: const Text('音のテスト（停止中のみ）'),
-            ),
-            const Text('テスト音：220 Hz、50 ms。再生中は有効なステップで鳴ります。'),
-            if (_triggerStatus != null) Text(_triggerStatus!),
-            if (d != null) ...[
-              const SizedBox(height: 16),
-              ExpansionTile(
-                title: const Text('音声診断'),
-                children: [
-              Text('missedSteps: ${sequence?.missedSteps ?? 0}'),
-              Text('sampleRate: ${d.sampleRate}'),
-              Text('callbackFrames: ${d.callbackFrames} (min ${d.callbackFramesMin} / max ${d.callbackFramesMax})'),
-              Text('renderedFrames: ${d.renderedFrames}'),
-              Text('callbackStartFrame: ${d.callbackStartFrame}'),
-              Text('callbackDurationUs: ${d.callbackDurationUs.toStringAsFixed(2)}'),
-              Text('callbackLoad: ${(d.callbackLoad * 100).toStringAsFixed(2)}%'),
-              Text('callbackLoadP95: ${(d.callbackLoadP95 * 100).toStringAsFixed(1)}%'),
-              Text('callbackLoadP99: ${(d.callbackLoadP99 * 100).toStringAsFixed(1)}%'),
-              Text('callbackLoadPeak: ${(d.callbackLoadPeak * 100).toStringAsFixed(2)}%'),
-              Text('audioRestartCount: ${d.audioRestartCount}'),
-              Text('queueDepth: ${d.queueDepth}'),
-              Text('queueHighWaterMark: ${d.queueHighWaterMark}'),
-              Text('queueOverflowCount: ${d.queueOverflowCount}'),
-              Text('triggerCount: ${d.triggerCount}'),
-              Text('lastTriggerOffset: ${d.lastTriggerOffset}'),
-                ],
-              ),
-            ],
-            if (_bridgeError != null) ...[
-              const SizedBox(height: 16),
-              Text('FFI/audio error: $_bridgeError'),
-            ],
-          ],
-        ),
+      appBar: AppBar(
+        title: const Text('Sequencer'),
+        actions: [IconButton(
+          tooltip: '音声診断', icon: const Icon(Icons.monitor_heart_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => DiagnosticsScreen(status: _audioStatus, onTest: _trigger),
+          )),
+        )],
+      ),
+      body: SequencerPanel(
+        sequence: _sequence, ready: ready,
+        onPlaying: (playing) => _control((b) => b.setPlaying(playing)),
+        onBpm: (bpm) => _control((b) => b.setBpm(bpm)),
+        onStep: (step, enabled) => _control((b) => b.setStep(step, enabled)),
       ),
     );
   }

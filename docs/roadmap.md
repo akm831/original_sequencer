@@ -162,3 +162,7 @@ Phase 1の実装前に、以下を基準として最初の具体的Stackを選�
 - Development / Debuggingのしやすさ
 
 必要であれば後からAudio Backendを置き換え・拡張できるArchitectureを維持します。
+
+## 2026-10-03 — 直近の実装順
+
+P4のFlutter実機発音と表示改善はユーザー確認済み。直近はUI整理 → 自動安定性 / Lifecycle確認 → JUCE同等経路と実Device比較 → Technology Checkpointの順。製品本実装では基本音源 / 複数Track → Level / Mute / Velocity / Swing → Pattern切り替え / 保存 → Sample編集 / Synth → Advanced Sequencingへ進む。UIや保存はEmulatorで確認し、音声Latency / Route Change / 継続負荷は実機で確認する。

@@ -1,13 +1,17 @@
 name: original_sequencer_flutter_prototype
 description: Technology prototype for Flutter UI + native C++ audio comparison.
 publish_to: none
-version: 0.0.1+1
+version: 0.0.2+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
     sdk: flutter
 
 flutter:
