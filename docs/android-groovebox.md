@@ -2,6 +2,12 @@
 
 Flutter Android Version 0.0.5+5。Application IDはcom.originalsequencer.prototype。固定テスト署名の導入前とは署名が合わない可能性があるので、[更新・Backup手順](android-update-backup.md)を先に参照。4 Tracks / 4 Patterns / 16 Steps。音は同梱Sampleを使わずC++で合成。
 
+## 最新APK
+
+[Actions Run 37135809703](https://github.com/akm831/original_sequencer/actions/runs/37135809703)のArtifacts欄から`sequencer-arm64-debug-8b6c178aeaee77fea7c9e180d6465fcaa1d06df4`をDownloadし、ZIP内のapp-debug.apkをInstall。Version 0.0.5+5、Artifact 11278663199（2026-10-18 JSTまで）。C++ 9 tests / Flutter 24 tests / analyze / ARM64 APK / Native FFI exports / 固定証明書検査成功。PR #7・#8をmainへ統合済み。
+
+署名固定前のAPKから初回移行する場合は、削除前に[Backup手順](android-update-backup.md)を確認。今後の固定テスト署名APK同士は更新Install可能。
+
 ## 操作
 
 - 再生／停止、60〜240 BPM。Playは編集中のBankのStep 1から。
@@ -29,9 +35,6 @@ Kick / Snare / HatはPitch / Tone / Decayを調整。Hat StepのOpenスイッチ
 
 旧Schema 1の編集を保持してSchema 2へ移行。Bassの旧Patternが無音だった場合はそのまま無音を維持するため、Bassを選んでStepを有効にする。音程の初期値はC2。新規ProjectにはデモBass Patternを用意。Note / Slide / Open Hat / 全音色Stateを保存する。
 
-## 前版Build済みAPK
-
-[Actions Run 37130262542](https://github.com/akm831/original_sequencer/actions/runs/37130262542)のArtifacts欄から`sequencer-arm64-debug-0a274ad315322d427224fcf1281337c3bfed36d5`をDownloadし、ZIP内のapp-debug.apkを更新Install。Artifact ID 11276104349、2026-10-17まで。C++ 7 tests / Flutter 11 tests / analyze / APK / Native Library Packaging成功。PR #6をmainへ統合済み。
 
 ## Androidの割り込みと停止
 

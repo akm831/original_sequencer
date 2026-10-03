@@ -14,7 +14,7 @@
 
 - Version 0.0.4+4: Analog Percussion、Saw / Square Acid Bass、Pitch / Tone / Decay / Cutoff / Resonance / Filter Envelope、Bass Note / Accent / Slide、Hat開閉、Schema 1→2 Migrationを実装。Run `37132997199`でC++ tests 8本 / Flutter tests 14本 / analyze / ARM64 APK / Exported FFI Symbols検査が成功。PR #7をmain `b85aae8`へ統合。Artifact `11277543381`。音色の実機確認は未実施。
 
-- Version 0.0.5+5: 一括Track更新、Stop Fade / Retrigger smoothing、密な音源Stress Test、文字拡大Grid、Play Bank整合、保存Read上限、Audio Focus / 非同期Grant取消を追加。公開テスト用署名の固定と証明書検査、JSON Import / Export、読めない保存のRaw Exportを追加。CI結果は最新PR参照。懸念点の台帳はdocs/android-audio-review.md、初回署名移行はdocs/android-update-backup.md。
+- Version 0.0.5+5: 一括Track更新、Stop Fade / Retrigger smoothing、密な音源Stress Test、文字拡大Grid、Play Bank整合、保存Read上限、Audio Focus / 非同期Grant取消を追加。公開テスト用署名の固定と証明書検査、JSON Import / Export、読めない保存のRaw Exportを追加。Run `37135809703`でC++ tests 9本 / Flutter tests 24本 / analyze / ARM64 APK / FFI Export / 固定証明書検査すべて成功。Artifact `11278663199`（2026-10-18 JSTまで）、PR #8をmain `5a5437c`へ統合済み。懸念点の台帳はdocs/android-audio-review.md、初回署名移行はdocs/android-update-backup.md。
 
 ## Important Decisions
 
@@ -22,7 +22,7 @@ Audio Callbackにallocation / lock / File I/Oを持ち込まない。Core Musica
 
 ## Next
 
-新APKで808系Percussion / Acid Bassの聴感と調整幅、Bass Note / Slide / Accent、旧保存の復元を実機確認。以後音色の改善、Clap / Tom / Rim等の追加、Parameter Lock、Track Lengthへ進む。Sampler / Platform互換性の順番は必要に応じて後続。Route Change / 実機長時間負荷は未確認。
+最新APKと初回署名移行はdocs/android-groovebox.md / docs/android-update-backup.md参照。新APKで808系Percussion / Acid Bassの聴感と調整幅、Bass Note / Slide / Accent、旧保存の復元を実機確認。以後音色の改善、Clap / Tom / Rim等の追加、Parameter Lock、Track Lengthへ進む。Sampler / Platform互換性の順番は必要に応じて後続。Route Change / 実機長時間負荷は未確認。
 
 ## References
 

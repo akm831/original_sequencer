@@ -1,5 +1,7 @@
 # Android音源Sliceの懸念点と確認記録
 
+CI Run `37135809703`でC++ 9 tests / Flutter 24 tests / APK / Exported FFI Symbols / 固定署名の証明書検査成功。PR #8をmainへ統合済み。
+
 ## 修正・自動確認済み
 
 | 懸念 | 対応と検証 |
@@ -29,6 +31,9 @@
 6. Route Change: Wired / Bluetoothの接続・切断で停止と再Open、再生再開、Bluetooth遅延と表示の関係。
 
 ## 後続の実装課題
+
+- 停止中・App離脱時もNative Audio Stream自体は維持する現行方針。バックグラウンド消費電力は未測定で、次のDevice評価に含める。Stream停止・Scheduler休止は後続検討。
+- Import前の自動Backupは内部保存済みのファイル。保存失敗等で最新Editがまだ内部にない場合は、Import前に現在のProjectを外部Exportする。
 
 - 音色設定は未予約Eventから反映。長いVoiceそのものをリアルタイムで連続Morphする処理は未実装。
 - Volume / Muteも未予約Eventに適用。Mute時に現在のTailを即消す専用Mixer経路は後続。
