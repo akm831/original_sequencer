@@ -531,3 +531,9 @@ Android AdapterのControl側でCommand投入とCore Lifecycleを直列化する�
 Stop / Restartは世代番号で予約済みEventを無効化し、Queueを実行中にResetしない。停止時の50 ms検証Burst Tailは自然終了を許可する。Live Padは未実装であり、P3テスト入力はTransport停止時のみ有効とする。BPM / Step編集は未予約Eventへ適用し、既にQueueへ入れたEventを書き換えない。Schedulerが遅れた場合は過去のStepをSkipし、Overflowの場合はTransportを停止する。
 
 Pattern保存、複数Track、Sampler / Synth、JUCE P4はこのCheckpointの対象外。Technology選定は引き続き実機比較で判断する。
+
+## 2026-10-03 — P4ステップ表示遅延の修正
+
+実機で発音が正常だがステップ強調が遅いとの報告を受けた。50 ms周期で全画面診断を更新していたため、再生位置の観測に最大約50 msの待ちが生じていた。再生中のみFlutterのフレーム同期TickerでNativeの実行済み位置を読み、値の変化時だけ再描画する。ステップボタンのStyle AnimationはDuration.zeroへ変更する。診断は200 ms周期へ分離する。音のSchedulerや発音時刻は変更しない。
+
+表示はレンダー済み位置の観測であり、音声出力装置のPresentation Timestampとの厳密な同期ではない。画面描画と音声DeviceのLatencyは残るため、実機での改善量は別途確認する。
