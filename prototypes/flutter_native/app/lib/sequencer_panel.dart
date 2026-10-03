@@ -48,8 +48,10 @@ class SequencerPanel extends StatelessWidget {
             Icon(running ? Icons.graphic_eq : Icons.pause_circle_outline,
               size: 18, color: running ? Colors.deepPurple : Colors.grey),
             const SizedBox(width: 6),
-            Expanded(child: Text(ready ? (running ? '再生中' : '停止中') : '音声を準備できませんでした')),
-            const Text('1小節 · 16ステップ'),
+            Expanded(child: Text(ready ? (running ? '再生中' : '停止中') : '音声を準備できませんでした',
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
+            const Flexible(flex: 2, child: Text('1小節 · 16ステップ',
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
           ]),
           const SizedBox(height: 12),
           Expanded(child: LayoutBuilder(builder: (context, constraints) {
