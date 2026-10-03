@@ -57,7 +57,7 @@ class SequencerPanel extends StatelessWidget {
             final width = math.min(constraints.maxWidth, 520.0);
             final scaler = MediaQuery.textScalerOf(context);
             final minimum = notes == null ? 216.0 : math.max(288.0,
-              (scaler.scale(20)+scaler.scale(11))*1.4*4+24);
+              (scaler.scale(20)+scaler.scale(11))*1.6*4+24);
             final height = math.max(minimum, math.min(constraints.maxHeight, 408.0));
             return SingleChildScrollView(
               child: Center(child: SizedBox(width: width, height: height,
@@ -88,8 +88,9 @@ class SequencerPanel extends StatelessWidget {
                         onPressed: ready ? () => onStep(step, !enabled) : null,
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Text('${step+1}${(accentMask & (1<<step)) != 0 ? '•' : ''}',
-                            style: const TextStyle(fontSize: 20,fontWeight: FontWeight.w600)),
-                          if(notes!=null) Text('${noteName(notes![step])}${(flags & (1<<step)) != 0 ? ' ↗' : ''}',style: const TextStyle(fontSize: 11)),
+                            maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20,fontWeight: FontWeight.w600)),
+                          if(notes!=null) Text('${noteName(notes![step])}${(flags & (1<<step)) != 0 ? ' ↗' : ''}',
+                            maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
                           if(hat && (flags & (1<<step)) != 0) const Text('OPEN',style: TextStyle(fontSize: 10)),
                         ]),
                       ),
