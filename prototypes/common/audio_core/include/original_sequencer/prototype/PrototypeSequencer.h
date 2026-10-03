@@ -30,6 +30,7 @@ public:
             if (d.sequenceStep < 16) activePattern_ = d.sequencePattern;
         }
         queuedPattern_ = 4;
+        bassSlideNext_ = false;
         running_ = false;
         if (++generation_ == 0) ++generation_;
         core_.setSequenceGeneration(generation_);
@@ -57,12 +58,29 @@ public:
         if (enabled) mask_ |= (1U << step); else mask_ &= ~(1U << step);
         return true;
     }
-    struct Track { std::uint32_t mask = 0, accents = 0; float level = 0.8F; bool muted = false; };
+    struct Track {
+        std::uint32_t mask = 0, accents = 0; float level = .8F; bool muted = false;
+        SoundSettings sound{};
+        std::array<std::uint32_t,16> notes{36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36};
+        std::uint32_t flags = 0; // Bass: outgoing slide; Hat: open articulation.
+    };
+    [[nodiscard]] bool setSound(std::uint32_t pattern, std::uint32_t track, SoundSettings sound) noexcept {
+        if (pattern >= 4 || track >= 4 || !sound.valid()) return false;
+        tracks_[pattern][track].sound = sound; return true;
+    }
+    [[nodiscard]] bool setNote(std::uint32_t pattern, std::uint32_t track, std::uint32_t step,
+                               std::uint32_t note, bool flag) noexcept {
+        if (pattern>=4 || track>=4 || step>=16 || note<24 || note>84) return false;
+        auto& data=tracks_[pattern][track]; data.notes[step]=note;
+        if(flag) data.flags |= 1U<<step; else data.flags &= ~(1U<<step);
+        return true;
+    }
     [[nodiscard]] bool setTrack(std::uint32_t pattern, std::uint32_t track, std::uint32_t mask,
                                std::uint32_t accents, float level, bool muted) noexcept {
         if (pattern >= 4 || track >= 4 || mask > 65535 || accents > 65535
             || !std::isfinite(level) || level < 0 || level > 1) return false;
-        tracks_[pattern][track] = {mask, accents, level, muted}; groove_ = true;
+        auto& data = tracks_[pattern][track];
+        data.mask=mask; data.accents=accents; data.level=level; data.muted=muted; groove_ = true;
         return true;
     }
     [[nodiscard]] bool selectPattern(std::uint32_t pattern) noexcept {
@@ -95,8 +113,19 @@ public:
                     const auto& data = tracks_[activePattern_][track];
                     if (data.muted || !(data.mask & (1U << nextStep_))) continue;
                     const auto velocity = (data.accents & (1U << nextStep_)) ? 1.0F : 0.65F;
-                    if (!core_.enqueueCommand({AudioCommandType::trigger, target, track + 1,
-                        data.level * velocity, generation_, nextStep_, activePattern_})) { stop(); return; }
+                    AudioCommand command{AudioCommandType::trigger, target, track + 1,
+                        data.level * velocity, generation_, nextStep_, activePattern_};
+                    command.sound=data.sound; command.note=data.notes[nextStep_];
+                    command.accent=(data.accents & (1U<<nextStep_)) != 0;
+                    command.openHat=track==2 && (data.flags & (1U<<nextStep_));
+                    // Slide belongs to the outgoing step. Only adjacent enabled notes connect.
+                    const auto next=(nextStep_+1)%16;
+                    command.slide=track==3 && bassSlideNext_ && bassPattern_==activePattern_
+                        && nextStep_==(bassStep_+1)%16 && target-bassFrame_ < period*1.5;
+                    const bool sustain=track==3 && (data.flags & (1U<<nextStep_)) && (data.mask & (1U<<next));
+                    command.gateFrames=static_cast<std::uint32_t>(std::clamp(period*(sustain ? 1.05L : .65L),1.0L,192000.0L));
+                    if (!core_.enqueueCommand(command)) { stop(); return; }
+                    if (track==3) { bassSlideNext_=sustain; bassPattern_=activePattern_; bassStep_=nextStep_; bassFrame_=target; }
                 }
             }
             nextFrame_ += period; // retain fractional frames to avoid tempo drift
@@ -113,7 +142,9 @@ public:
 
 private:
     std::array<std::array<Track, 4>, 4> tracks_{};
-    bool groove_ = false;
+    bool groove_ = false, bassSlideNext_ = false;
+    std::uint32_t bassPattern_=0,bassStep_=16;
+    std::uint64_t bassFrame_=0;
     std::uint32_t activePattern_ = 0, queuedPattern_ = 4;
     AudioCore& core_;
     double bpm_ = 120.0;

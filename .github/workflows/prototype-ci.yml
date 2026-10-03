@@ -86,6 +86,8 @@ jobs:
           import hashlib
           import json
           import os
+          import subprocess
+          import tempfile
           from pathlib import Path
           from zipfile import ZipFile
           apk = Path('build/app/outputs/flutter-apk/app-debug.apk')
@@ -99,6 +101,14 @@ jobs:
               missing = required - names
               if missing:
                   raise SystemExit(f'APK is missing native libraries: {sorted(missing)}')
+              with tempfile.TemporaryDirectory() as directory:
+                  library = archive.extract('lib/arm64-v8a/liboriginal_sequencer_flutter_bridge.so', directory)
+                  readelf = Path(os.environ['ANDROID_HOME']) / 'ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf'
+                  symbols = subprocess.check_output([str(readelf), '--dyn-syms', '--wide', library], text=True)
+                  exported = {line.split()[-1] for line in symbols.splitlines() if line.split() and 'GLOBAL' in line and 'UND' not in line}
+                  required_api = {'prototype_create', 'prototype_set_track', 'prototype_select_pattern', 'prototype_set_sound', 'prototype_set_note', 'prototype_get_sequence_state'}
+                  if required_api - exported:
+                      raise SystemExit(f'Native FFI symbols are missing: {sorted(required_api - exported)}')
           metadata = {
               'commit': os.environ['GITHUB_SHA'],
               'run': os.environ['GITHUB_RUN_ID'],

@@ -94,6 +94,27 @@ int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint
     return engine.sequencer.setTrack(pattern, track, mask, accents, level, muted != 0) ? 1 : 0;
 #endif
 }
+int32_t prototype_set_sound(void* handle, uint32_t pattern, uint32_t track, float pitch, float decay, float tone, float cutoff, float resonance, float envelope, uint32_t waveform) {
+    if (!handle) return 0;
+    const original_sequencer::prototype::SoundSettings sound{pitch,decay,tone,cutoff,resonance,envelope,waveform};
+#if defined(__ANDROID__)
+    return asEngine(handle)->audio.setSound(pattern,track,sound) ? 1 : 0;
+#else
+    auto& engine=*asEngine(handle);
+    std::lock_guard<std::mutex> lock(engine.producerMutex);
+    return engine.sequencer.setSound(pattern,track,sound) ? 1 : 0;
+#endif
+}
+int32_t prototype_set_note(void* handle, uint32_t pattern, uint32_t track, uint32_t step, uint32_t note, int32_t flag) {
+    if (!handle) return 0;
+#if defined(__ANDROID__)
+    return asEngine(handle)->audio.setNote(pattern,track,step,note,flag!=0) ? 1 : 0;
+#else
+    auto& engine=*asEngine(handle);
+    std::lock_guard<std::mutex> lock(engine.producerMutex);
+    return engine.sequencer.setNote(pattern,track,step,note,flag!=0) ? 1 : 0;
+#endif
+}
 int32_t prototype_select_pattern(void* handle, uint32_t pattern) {
     if (!handle) return 0;
 #if defined(__ANDROID__)

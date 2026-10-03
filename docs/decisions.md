@@ -563,3 +563,15 @@ Application IDはcom.originalsequencer.juceprototypeとしてFlutterと同時Ins
 Pattern選択は再生中は次の未予約の小節先頭に適用し、最新の予約要求を採用する。約50 msのLookahead内の予約済みEventは書き換えない。表示はAudio Callbackで実行済みのPattern / Stepを観測する。Stopは予約Patternを取り消し、最後に実行したPatternを保持し、次のPlayはStep 1から開始する。VoiceはTrackごとにMonophonic / Retrigger、Tailは最大200 ms。無音StepにもMarkerを置く。
 
 Android内部領域へVersion 1 / kind android-groovebox / PPQN 960のJSONを保存する。ModelとPlatform I/Oを分離し、BPM、編集Pattern、全TrackのEngine ID / Step / Accent / Volume / Muteを保存。Edit後500 ms debounce、手動保存、App離脱時保存。Kotlinの単一I/O ExecutorとAtomicFileで書き込み順と失敗時の旧データを保つ。未知Schema / 不正データ / 読み込み失敗は上書きを停止する。再起動時に復元し、自動再生しない。外部Import / Exportと製品Portable Project Formatは後続。
+
+## 2026-10-04 — 音源を808系Percussion / 303系Bassへ優先拡張
+
+ユーザー指示でSampler Import / Parameter Lockより、808系Percussionと303系Bassの特徴を持つ合成音源を優先する。製品Synth全仕様を一度に実装せず、4 Track構成のままKick / Snare / Closed・Open Hat / Mono Acid Bassを演奏できるSliceにする。回路の厳密なEmulationや完全なTR-808 / TB-303再現を保証しない。Factory Sampleを使わないため外部音源素材に依存しない。
+
+共通C++の固定容量AnalogVoiceをAudioCoreから利用。KickはPitch Sweepと減衰Sine、Snareは2 Body TonesとHigh-pass Noise、Hatは6 Metallic SquaresとHigh-pass成分。Closed / Openは同じVoiceを共有してChoke。Pitch / Tone / DecayをBankごとに保存。BassはPolyBLEP Saw / Square、飽和Feedback付き3段LP、Filter Envelope、Accent、65 ms相当のExponential Glide。2 Integration Substepsは簡易安定化であり、完全Oversampling / 回路モデルとは区別する。
+
+Bass NoteはMIDI 24〜84、Step長240 ticks、通常GateはStepの65%、Outgoing Slideが有効かつ直後の発音がある場合は105%でつなぐ。Incoming Slideは同じPatternの連続した有効Stepだけで発生し、休符 / Pattern変更 / Stop / 世代変更では切れる。Slide中はOscillator / Amp / Filter Envelopeを再Triggerしない。Accentは音量とFilter Envelope深さを増やす。Gate以降は6 ms相当Release、最長Voice寿命はPercussionの約980 ms。予約済み音色変更は従来同様Lookahead内で書き換えず、新しいEventへ適用。
+
+Step長押しを詳細Editorへ変更。発音とAccent、Bass Note / Outgoing Slide、Hat Openを編集。Track音色EditorはScroll可能にしてMain Gridを簡潔に保つ。JSON Schema 2へSound State / notes[16] / flagsを追加し、Schema 1のPattern / Mask / Accent / Volume / Mute / BPMをそのまま保持してDefaultsでMigration。未知Version / 不正Stateの上書き停止は維持。
+
+音色設計の操作項目はRolandの[TB-303取扱説明書](https://cdn.roland.com/assets/media/pdf/TB-303_OM.pdf)を参考にした。音声処理コードはこのProject独自の特徴合成で、Rolandの回路Emulationではない。

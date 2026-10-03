@@ -141,6 +141,14 @@ bool AndroidAudioBackend::setTrack(std::uint32_t pattern, std::uint32_t track, s
     return sequencer_.setTrack(pattern, track, mask, accents, level, muted);
 }
 
+bool AndroidAudioBackend::setSound(std::uint32_t pattern, std::uint32_t track, SoundSettings sound) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setSound(pattern,track,sound);
+}
+bool AndroidAudioBackend::setNote(std::uint32_t pattern, std::uint32_t track, std::uint32_t step, std::uint32_t note, bool flag) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setNote(pattern,track,step,note,flag);
+}
 bool AndroidAudioBackend::selectPattern(std::uint32_t pattern) noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
     return sequencer_.selectPattern(pattern);

@@ -110,6 +110,12 @@ int main() {
     assert(prototype_set_track(handle,4,0,1,0,1,0) == 0);
     assert(prototype_select_pattern(handle,4) == 0);
     assert(prototype_set_track(handle,2,0,1,1,.8F,0) == 1);
+    assert(prototype_set_sound(nullptr,2,0,.5F,.5F,.5F,.5F,.5F,.5F,0) == 0);
+    assert(prototype_set_sound(handle,2,0,.5F,.5F,.5F,.5F,2.F,.5F,0) == 0);
+    assert(prototype_set_sound(handle,2,0,.5F,.5F,.5F,.5F,.5F,.5F,0) == 1);
+    assert(prototype_set_note(handle,2,3,16,36,0) == 0);
+    assert(prototype_set_note(handle,2,3,0,85,0) == 0);
+    assert(prototype_set_note(handle,2,3,0,48,1) == 1);
     assert(prototype_select_pattern(handle,2) == 1);
     assert(prototype_get_sequence_state(handle).current_pattern == 2);
     assert(prototype_set_playing(handle,1) == 1);

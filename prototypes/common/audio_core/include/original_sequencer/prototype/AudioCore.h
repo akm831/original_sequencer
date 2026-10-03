@@ -80,12 +80,7 @@ private:
     std::atomic<std::uint64_t> activeSequenceGeneration_{0};
     std::atomic<std::uint64_t> playedSequenceGeneration_{0};
     std::atomic<std::uint32_t> playedSequenceStep_{16};
-    struct DrumVoice {
-        double phase = 0.0;
-        float amplitude = 0.0F;
-        std::uint32_t remaining = 0, length = 0, noise = 1;
-    };
-    std::array<DrumVoice, 4> drums_{};
+    std::array<AnalogVoice, 4> drums_{};
     std::atomic<std::uint32_t> playedSequencePattern_{0};
     double burstPhase_ = 0.0;
     float burstAmplitude_ = 0.0F;
