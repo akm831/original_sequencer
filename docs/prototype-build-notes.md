@@ -227,3 +227,15 @@ JUCE側のP0 / P1基本Bring-upは確認済みですが、Candidate比較完了�
 GitHub Actionsの設定は`.github/workflows/prototype-ci.yml`、使い方は`docs/automated-builds.md`を参照。Flutterは3.47.2、Javaは17に固定し、既存Android SDK / NDK / CMake指定と同じ条件でARM64 Debug APKをBuildする。Native Audio Bridge / C++ Runtime / Flutter EngineがAPKへ含まれることも検査する。
 
 Common CoreのHost testはDebug設定とし、assertを無効にして見かけ上成功させない。Workflow追加時点の初回実行結果は`docs/status.md`へ記録する。
+
+## 2026-10-03 — Compact UI確認用APK
+
+Run `37124704514`ですべて成功: C++ tests 6本、Flutter analyze、Widget tests 7本、ARM64 Debug APK Build、Native Library Packaging。Artifact `11274344868`、Version 0.0.2+2、PR #4統合済み。APK配布ページ: https://github.com/akm831/original_sequencer/actions/runs/37124704514 （GitHubへログインしてArtifactsから取得）。
+
+人による次の確認:
+
+1. 縦画面で再生／停止、BPM、16 Stepsが見渡せること。Step編集と枠の同期、文字の読みやすさを確認
+2. 再生中に診断画面を開いても音が続き、単発テストはDisabledであること。Homeで別Appへ移動すると停止し、復帰時に停止を維持してPattern / BPMが残ること
+3. 利用可能な有線 / Bluetooth等でRoute Change後の無音 / 再開 / Restart Countを確認。長時間の実音声再生でSkip / Overflow / 音切れが増えないか確認
+
+1〜2はM4 MacのARM64 Emulatorでも確認可能。3のLatency、Device固有挙動、継続負荷はAndroid実機で確認する。Coreの30分相当Soakは加速したFrame Timeline検証であり、30分の実時間Device評価ではない。Technology確定にはJUCE同等経路の実機比較が残る。

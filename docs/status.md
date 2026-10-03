@@ -71,7 +71,7 @@ P4の実装:
 - Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4の実機発音はユーザー確認済み。音に対するステップ表示の遅れが報告された（2026-10-03）
 - ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。Run `37117846090`でC++ tests 5本、Flutter analyze、ARM64 APK build、Native Library Packagingが成功。Artifact `11271858961`、PR #3をmainへ統合済み。ユーザーが修正版について「概ねいい感じに動いている」と確認済み（2026-10-03）。画像ではmissedSteps 0、Queue Overflow 0、Restart 0、48 kHz / 96 frames、p95 0.6% / p99 0.8%。同期の定量測定は未実施
 - メインをTransport / BPM / 4×4 Gridへ整理し、診断と単発テストを別画面へ移動。縦画面で全Step表示、狭い横画面ではGridのみScroll。App離脱時はTransport停止、復帰時は自動再生しない
-- Widget testsで画面サイズ / 文字倍率 / 操作Intent / 診断更新を検証する。Coreの30分相当×2 Sample Rates、可変Buffer、1000回×2のStop / Play、Device Resetを自動検証する。実Deviceの長時間負荷 / Route Changeは別途必要
+- Run `37124704514`でC++ tests 6本、Flutter analyze、Widget tests 7本、ARM64 APK Build / Native Library Packagingが成功。Artifact `11274344868`（2026-10-17まで）、Version 0.0.2+2、PR #4をmainへ統合。画面サイズ / 文字倍率 / 操作Intent / 診断更新と、Coreの30分相当×2 Sample Rates、可変Buffer、1000回×2のStop / Play、Device Resetを自動検証済み。実Deviceの長時間負荷 / Route Changeは別途必要
 - JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
