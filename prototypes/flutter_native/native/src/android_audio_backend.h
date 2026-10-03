@@ -33,6 +33,7 @@ public:
     [[nodiscard]] bool setBpm(double bpm) noexcept;
     [[nodiscard]] bool setStep(std::uint32_t step, bool enabled) noexcept;
     [[nodiscard]] bool setTrack(std::uint32_t pattern, std::uint32_t track, std::uint32_t mask, std::uint32_t accents, float level, bool muted) noexcept;
+    [[nodiscard]] bool setTrackData(std::uint32_t pattern, std::uint32_t track, const PrototypeSequencer::Track& data) noexcept;
     [[nodiscard]] bool setSound(std::uint32_t pattern, std::uint32_t track, SoundSettings sound) noexcept;
     [[nodiscard]] bool setNote(std::uint32_t pattern, std::uint32_t track, std::uint32_t step, std::uint32_t note, bool flag) noexcept;
     [[nodiscard]] bool selectPattern(std::uint32_t pattern) noexcept;

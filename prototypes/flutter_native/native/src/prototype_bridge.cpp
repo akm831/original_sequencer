@@ -84,6 +84,21 @@ int32_t prototype_schedule_trigger(void* handle, uint32_t delay_frames, float va
 #endif
 }
 
+int32_t prototype_update_track(void* handle, uint32_t pattern, uint32_t track, const PrototypeTrackConfig* config) {
+    if (!handle || !config) return 0;
+    original_sequencer::prototype::PrototypeSequencer::Track data;
+    data.mask=config->mask; data.accents=config->accents; data.level=config->level; data.muted=config->muted!=0;
+    data.sound={config->pitch,config->decay,config->tone,config->cutoff,config->resonance,config->envelope,config->waveform};
+    data.flags=config->flags;
+    for(unsigned i=0;i<16;++i) data.notes[i]=config->notes[i];
+#if defined(__ANDROID__)
+    return asEngine(handle)->audio.setTrackData(pattern,track,data) ? 1 : 0;
+#else
+    auto& engine=*asEngine(handle);
+    std::lock_guard<std::mutex> lock(engine.producerMutex);
+    return engine.sequencer.setTrackData(pattern,track,data) ? 1 : 0;
+#endif
+}
 int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint32_t mask, uint32_t accents, float level, int32_t muted) {
     if (!handle) return 0;
 #if defined(__ANDROID__)

@@ -1,10 +1,10 @@
 # Android Groovebox Slice
 
-Flutter Android Version 0.0.4+4。既存アプリに更新Installできる（com.originalsequencer.prototype）。4 Tracks / 4 Patterns / 16 Steps。音は同梱Sampleを使わずC++で合成。
+Flutter Android Version 0.0.5+5。既存アプリに更新Installできる（com.originalsequencer.prototype）。4 Tracks / 4 Patterns / 16 Steps。音は同梱Sampleを使わずC++で合成。
 
 ## 操作
 
-- 再生／停止、60〜240 BPM。PlayはStep 1から。
+- 再生／停止、60〜240 BPM。Playは編集中のBankのStep 1から。
 - キック／スネア／ハット／ベースを選びStepをTapしてON / OFF。Long PressでStep Editorを開きAccent（•）を設定。Accentは通常Velocity 0.65に対して1.0。
 - 音色・音量で選択Trackの音色 / Volume / Mute。Bankごとに独立。
 - A〜Dで編集Bankを選択し、再生中は次の未予約小節で切り替え。…は予約、▶は実行済みBank。予約済み約50 msは変更しない。
@@ -32,3 +32,7 @@ Kick / Snare / HatはPitch / Tone / Decayを調整。Hat StepのOpenスイッチ
 ## 前版Build済みAPK
 
 [Actions Run 37130262542](https://github.com/akm831/original_sequencer/actions/runs/37130262542)のArtifacts欄から`sequencer-arm64-debug-0a274ad315322d427224fcf1281337c3bfed36d5`をDownloadし、ZIP内のapp-debug.apkを更新Install。Artifact ID 11276104349、2026-10-17まで。C++ 7 tests / Flutter 11 tests / analyze / APK / Native Library Packaging成功。PR #6をmainへ統合済み。
+
+## Androidの割り込みと停止
+
+PlayはAudio Focus取得後に開始。通話や他アプリへFocusを譲ると停止し、戻っても自動再生しない。新Analog VoiceはStop時に最大20 msでFade。再生中のTrack編集は一括Native Commit。懸念点と未確認項目は[android-audio-review.md](android-audio-review.md)を参照。

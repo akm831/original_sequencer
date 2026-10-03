@@ -575,3 +575,13 @@ Bass NoteはMIDI 24〜84、Step長240 ticks、通常GateはStepの65%、Outgoing
 Step長押しを詳細Editorへ変更。発音とAccent、Bass Note / Outgoing Slide、Hat Openを編集。Track音色EditorはScroll可能にしてMain Gridを簡潔に保つ。JSON Schema 2へSound State / notes[16] / flagsを追加し、Schema 1のPattern / Mask / Accent / Volume / Mute / BPMをそのまま保持してDefaultsでMigration。未知Version / 不正Stateの上書き停止は維持。
 
 音色設計の操作項目はRolandの[TB-303取扱説明書](https://cdn.roland.com/assets/media/pdf/TB-303_OM.pdf)を参考にした。音声処理コードはこのProject独自の特徴合成で、Rolandの回路Emulationではない。
+
+## 2026-10-04 — 音源拡張後の安定化とAndroid Audio Focus
+
+ユーザーの継続作業指示を受け、再生中のTrack更新を18個のFFI Callから検証済みSnapshotの単一Callへ変更する。Sound / Notes / Flags / Mask / Level / MuteをControl Mutex内で一括Commitし、不正入力は一部だけ適用しない。Dart側の一時AllocationはUI Threadのみで、Audio Callbackは固定容量を維持。C ABI構造体112 bytes、APK Exported Symbolも検査する。
+
+新Analog VoiceのStop / 世代変更は最大20 msのFadeで終了。通常のRetriggerは直前Sampleから約2 msで新Voiceへ移行し、急な波形Resetを緩和。P3 Legacy Burstは従来の50 ms Tailを保持。Playは編集Bankを明示してStep 1から開始する。
+
+AndroidではPlay直前にMEDIA / MUSICのAudio Focusを要求し、拒否時は再生しない。LOSS / LOSS_TRANSIENT / CAN_DUCKは停止し、GAIN時に自動再生しない。Stop / App離脱 / DisposeでFocusを返す。非同期Focus応答の世代を追跡し、Stop後の遅いGrantが勝手に再生を開始しないようにする。P3 Testも短時間だけFocusを取得。API 24〜25はLegacy AudioManager、26以降はAudioFocusRequestを利用。Oboe Usage / ContentTypeをFocus Attributesに合わせる。Background Playbackは追加しない。
+
+[Android公式Audio Focus文書](https://developer.android.com/media/optimize/audio-focus)を参照。実際の他アプリ割り込み / 通話 / Bluetooth経路はBuildやHost testのみでは保証できないため実機確認を残す。

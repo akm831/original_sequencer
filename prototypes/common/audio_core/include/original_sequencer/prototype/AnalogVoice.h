@@ -25,12 +25,16 @@ public:
     void trigger(unsigned kind, const SoundSettings& s, float velocity, unsigned note,
                  bool accent, bool slide, bool openHat, unsigned gateFrames,
                  double sampleRate, std::uint64_t generation) noexcept {
+        const bool wasActive = remaining_>0;
         const bool legato = kind == 3 && slide && remaining_ > 0 && generation == generation_;
         if (!legato) {
+            retriggerTail_=wasActive ? lastOut_ : 0;
+            retriggerLength_=retriggerFrames_=wasActive ? std::max(1U,static_cast<unsigned>(sampleRate*.002)) : 0;
             phase_ = 0; filter_ = {}; hatPhases_ = {}; hp_ = 0;
             amp_ = 0; env_ = 1; frequency_ = 440 * std::pow(2.0, (static_cast<int>(note)-69)/12.0);
             age_ = 0;
         }
+        cancelFrames_=cancelLength_=0;
         kind_ = kind; settings_ = s; generation_ = generation;
         rate_ = sampleRate; velocity_ = velocity; accent_ = accent;
         target_ = 440 * std::pow(2.0, (static_cast<int>(note)-69)/12.0);
@@ -45,6 +49,12 @@ public:
         attack_ = 1-std::exp(-1.0/(.002*rate_));
         release_ = std::exp(-1.0/(.006*rate_));
         if (!legato) noise_ = 0x9e3779b9U + kind;
+    }
+    void cancelGeneration(std::uint64_t active) noexcept {
+        if (generation_==0 || generation_==active || cancelFrames_!=0 || remaining_==0) return;
+        gate_=0;
+        cancelLength_=cancelFrames_=std::max(1U,static_cast<unsigned>(rate_*.02));
+        remaining_=std::min(remaining_,cancelLength_);
     }
     float sample() noexcept {
         if (remaining_ == 0) return 0;
@@ -101,7 +111,14 @@ public:
             env_ *= drumDecay_;
             out *= env_;
         }
-        return static_cast<float>(out*velocity_*(kind_==3 ? .32 : .22));
+        if (cancelFrames_>0) { out *= static_cast<double>(cancelFrames_)/cancelLength_; --cancelFrames_; }
+        out *= velocity_*(kind_==3 ? .32 : .22);
+        if(retriggerFrames_>0) {
+            const double blend=static_cast<double>(retriggerFrames_)/retriggerLength_;
+            out=out*(1-blend)+retriggerTail_*blend; --retriggerFrames_;
+        }
+        lastOut_=out;
+        return static_cast<float>(out);
     }
     bool active() const noexcept { return remaining_ != 0; }
 private:
@@ -112,11 +129,12 @@ private:
         return 0;
     }
     SoundSettings settings_{};
-    unsigned kind_=0,remaining_=0,gate_=0,age_=0;
+    unsigned kind_=0,remaining_=0,gate_=0,age_=0,cancelFrames_=0,cancelLength_=0,retriggerFrames_=0,retriggerLength_=0;
     std::uint64_t generation_=0;
     std::uint32_t noise_=1;
     double rate_=48000,phase_=0,frequency_=110,target_=110,glide_=0,velocity_=0;
     double env_=0,amp_=0,drumDecay_=0,envDecay_=0,attack_=0,release_=0,baseCutoff_=0,hp_=0;
+    double lastOut_=0,retriggerTail_=0;
     bool accent_=false;
     std::array<double,3> filter_{};
     std::array<double,6> hatPhases_{};

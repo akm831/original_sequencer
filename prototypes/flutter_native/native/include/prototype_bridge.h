@@ -36,6 +36,15 @@ typedef struct PrototypeSequenceState {
     uint32_t current_pattern;
     uint32_t queued_pattern;
 } PrototypeSequenceState;
+typedef struct PrototypeTrackConfig {
+    uint32_t mask, accents;
+    float level;
+    int32_t muted;
+    float pitch, decay, tone, cutoff, resonance, envelope;
+    uint32_t waveform, flags;
+    uint32_t notes[16];
+} PrototypeTrackConfig;
+PROTOTYPE_FFI_EXPORT int32_t prototype_update_track(void* handle, uint32_t pattern, uint32_t track, const PrototypeTrackConfig* config);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint32_t mask, uint32_t accents, float level, int32_t muted);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_sound(void* handle, uint32_t pattern, uint32_t track, float pitch, float decay, float tone, float cutoff, float resonance, float envelope, uint32_t waveform);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_note(void* handle, uint32_t pattern, uint32_t track, uint32_t step, uint32_t note, int32_t flag);

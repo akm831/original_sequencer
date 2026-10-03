@@ -52,6 +52,18 @@ void main() {
     await tester.longPress(find.byKey(const Key('step-0')));
     expect(edit,0); expect(tester.takeException(),isNull);
   });
+  testWidgets('bass grid handles large text on a compact window', (tester) async {
+    tester.view.physicalSize=const Size(360,640); tester.view.devicePixelRatio=1;
+    addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(builder:(context,child)=>MediaQuery(
+      data:MediaQuery.of(context).copyWith(textScaler:TextScaler.linear(1.8)),child:child!),
+      home:Scaffold(body:SizedBox(height:400,child:SequencerPanel(
+        sequence:const PrototypeSequenceState(240,true,65535,0,0),ready:true,
+        onPlaying:(_){},onBpm:(_){},onStep:(_,__){},notes:List.filled(16,37),flags:65535,bass:true,
+      )))));
+    await tester.pump(); expect(tester.takeException(),isNull);
+    expect(tester.getRect(find.byKey(const Key('step-0'))).height,greaterThanOrEqualTo(48));
+  });
   testWidgets('step edits and transport send the requested intents', (tester) async {
     bool? playing;
     int? step;

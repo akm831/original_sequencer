@@ -64,6 +64,12 @@ public:
         std::array<std::uint32_t,16> notes{36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36};
         std::uint32_t flags = 0; // Bass: outgoing slide; Hat: open articulation.
     };
+    [[nodiscard]] bool setTrackData(std::uint32_t pattern, std::uint32_t track, const Track& data) noexcept {
+        if (pattern>=4 || track>=4 || data.mask>65535 || data.accents>65535 || data.flags>65535
+            || !std::isfinite(data.level) || data.level<0 || data.level>1 || !data.sound.valid()) return false;
+        for (auto note : data.notes) if(note<24 || note>84) return false;
+        tracks_[pattern][track]=data; groove_=true; return true;
+    }
     [[nodiscard]] bool setSound(std::uint32_t pattern, std::uint32_t track, SoundSettings sound) noexcept {
         if (pattern >= 4 || track >= 4 || !sound.valid()) return false;
         tracks_[pattern][track].sound = sound; return true;
