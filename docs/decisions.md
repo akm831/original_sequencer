@@ -523,3 +523,11 @@ Technology PrototypeのP3をHost上で検証できるよう、Common CoreのTrig
 Flutterの検証ボタンはScheduled Command入力であり、製品版Live Padではない。Live PadはLookahead末尾に入れない既存方針を維持する。Poly Voice / Voice Steal / 製品版Oscillatorの仕様はこの検証音から確定しない。
 
 Android AdapterのControl側でCommand投入とCore Lifecycleを直列化する。Audio CallbackへMutex、UI、allocationを持ち込まない。旧Streamの遅れたError Callbackによって新Streamを再OpenしないようStream identityを確認する。
+
+## 2026-10-03 — P4 Transport / Lookaheadの最小実装
+
+共有C++のControl-side SchedulerをFlutter候補へ先に接続する。1 Track / 16 Steps、960 PPQN、240 ticks/step、60〜240 BPM。Android Native Threadが5 ms間隔で約50 ms先までCommandを投入し、Audio CallbackはTimestamp実行のみ。UIのTimerで音を予約しない。
+
+Stop / Restartは世代番号で予約済みEventを無効化し、Queueを実行中にResetしない。停止時の50 ms検証Burst Tailは自然終了を許可する。Live Padは未実装であり、P3テスト入力はTransport停止時のみ有効とする。BPM / Step編集は未予約Eventへ適用し、既にQueueへ入れたEventを書き換えない。Schedulerが遅れた場合は過去のStepをSkipし、Overflowの場合はTransportを停止する。
+
+Pattern保存、複数Track、Sampler / Synth、JUCE P4はこのCheckpointの対象外。Technology選定は引き続き実機比較で判断する。

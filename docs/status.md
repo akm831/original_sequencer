@@ -33,7 +33,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - 2026-10-02: Common Coreへ指定Sample Offsetで始まる50 ms / 220 Hz検証用Burstを実装。Callback分割前後で波形が一致するHost testを追加
 - Flutter C ABI / DartへScheduled Trigger APIとQueue / Trigger Diagnosticsを接続し、P3検証ボタンを追加
 - Android AdapterでCommand投入とCore LifecycleをControl側Mutexにより直列化（Audio CallbackはMutex不使用）
-- Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。Flutter SDK / NDK実build・実機試験は未実施
+- Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。その後GitHub ActionsでFlutter / NDK build成功。P3実機発音は2026-10-03にユーザー確認
 
 - JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
 - JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
@@ -42,7 +42,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 
 ## Current Topic
 
-Technology Prototype: P3 Build検証 / GitHub Actions自動APK
+Technology Prototype: P4 Transport / 16-step Lookahead
 
 現在の到達点:
 
@@ -58,14 +58,24 @@ Technology Prototype: P3 Build検証 / GitHub Actions自動APK
 - Common Coreは指定FrameからOffsetを計算し、その位置から検証用Burstを実際に出力する。Host testで発音位置・Buffer境界・可変Buffer・Release後silenceを確認済み
 - Flutterからの投入とDiagnostics表示は実装済み。従来の連続Test Toneを止め、通常は無音、ボタンで短いBurstを出す
 - P3の検証音はMonophonic / Retrigger方式。製品版Synth / Poly Voice実装ではなく、Live Padの低Latency経路とも区別する
-- GitHub ActionsでCMakeによるHost tests 4本、Flutter analyze、ARM64 Android Debug APK build、必要Native LibrariesのPackaging検査が成功。実機P3は未確認
+- GitHub ActionsでCMakeによるHost tests 4本、Flutter analyze、ARM64 Android Debug APK build、必要Native LibrariesのPackaging検査が成功。実機P3はユーザーがボタン押下で発音を確認済み（2026-10-03）
 - JUCEのP3 UI・Burst出力・P2同等計測も実装済み。両候補とも連続Test Toneを止め、同じCoreの検証用Burstを出力。実機比較はまだ完了していない
+
+P4の実装:
+
+- Flutterに再生／停止、60〜240 BPM、16ステップのオン／オフ、再生位置表示を追加。初期120 BPM、1 / 5 / 9 / 13ステップ有効
+- 共通C++ Schedulerは960 PPQN、1/16 = 240 ticks、約50 ms Lookahead。AndroidのNative Control Threadが5 ms間隔で準備し、UI Timerは表示更新のみ
+- Stop / Playの世代番号で旧Commandを破棄。停止後の既存Burstは最大50 msで終了。再生は常にステップ1から再開
+- BPM / Pattern変更は未予約のEventへ適用。BPMは次の未予約境界から間隔が変わる。Device Restartは停止状態へ戻し、BPM / Patternは維持
+- 無音ステップもSample Offset付きMarkerで位置を表示。Scheduler遅延は追いつき連打せずSkipし、missedStepsへ記録。Queue overflow時はTransport停止
+- Host tests 5本とUndefinedBehaviorSanitizerで検証。Flutter analyze / Android APKはGitHub Actionsで検証する。P4実機確認は未実施
+- JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
 
-1. 生成したFlutter APKで実機P3を確認する。JUCEの自動Android Buildは後続
-2. Android実機で両候補のP3発音 / Queue Diagnostics / P2再測定を確認する
-3. P3の確認後、P4 Transport / 16-step Lookaheadへ進む
+1. P4 APKで実機のループ、BPM変更、編集、停止／再開を確認
+2. JUCEへ同等のP4経路を接続し実機比較
+3. Device Restart / Route Change、Live Pad独立経路の検証
 
 ## Important Current Decisions
 
@@ -106,4 +116,4 @@ Session終了前にRepositoryを更新し、新しいSessionではGitHubをSourc
 
 ## Next
 
-P3の実装は両候補へ接続済み。Flutterの自動APK Buildは成功。次の検証は実機P3 / P2再測定とJUCE Android Build。続く実装はP4 Transport / 16-step Lookahead。技術選定は実機比較結果を揃えてから行う。
+Flutter P4の16ステップ再生を実装済み。自動Build結果と実機確認を区別して記録する。JUCE P4、Route Change、Live Pad、製品版音源は後続。

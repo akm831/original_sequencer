@@ -27,6 +27,7 @@ struct DiagnosticsSnapshot {
     std::uint64_t queueOverflowCount = 0;
     std::uint64_t triggerCount = 0;
     std::uint32_t lastTriggerOffset = 0;
+    std::uint32_t sequenceStep = 16;
 };
 
 class AudioCore {
@@ -39,6 +40,13 @@ public:
     void shutdown() noexcept;
     // The single producer submits commands in nondecreasing targetFrame order.
     [[nodiscard]] bool enqueueCommand(const AudioCommand& command) noexcept;
+    [[nodiscard]] std::uint64_t sequenceGeneration() const noexcept {
+        return activeSequenceGeneration_.load(std::memory_order_acquire);
+    }
+    // Control-side cancellation: old queued sequence events are discarded by audio.
+    void setSequenceGeneration(std::uint64_t generation) noexcept {
+        activeSequenceGeneration_.store(generation, std::memory_order_release);
+    }
     void render(float* interleavedOutput, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame) noexcept;
     void renderPlanar(float* const* output, std::uint32_t frameCount, std::uint32_t channelCount, std::uint64_t callbackStartFrame, std::uint32_t outputOffset = 0) noexcept;
     void recordCallbackTiming(std::uint64_t callbackStartFrame, std::uint32_t frameCount, double durationUs) noexcept;
@@ -68,6 +76,9 @@ private:
     AudioCommandQueue<kCommandQueueCapacity> commandQueue_{};
     std::atomic<bool> hasPendingCommand_{false};
     AudioCommand pendingCommand_{};
+    std::atomic<std::uint64_t> activeSequenceGeneration_{0};
+    std::atomic<std::uint64_t> playedSequenceGeneration_{0};
+    std::atomic<std::uint32_t> playedSequenceStep_{16};
     double burstPhase_ = 0.0;
     float burstAmplitude_ = 0.0F;
     std::uint32_t burstRemaining_ = 0;

@@ -77,6 +77,34 @@ int main() {
         assert(prototype_get_diagnostics(handle).queue_depth <= 257);
     producer.join();
     lifecycle.join();
+    prototype_initialize(handle, 48000.0, 256);
+    assert(prototype_set_bpm(handle, 59.0) == 0);
+    assert(prototype_set_bpm(handle, 240.0) == 1);
+    assert(prototype_set_step(handle, 16, 1) == 0);
+    assert(prototype_set_step(handle, 1, 1) == 1);
+    assert(prototype_set_playing(handle, 1) == 1);
+    assert(prototype_schedule_trigger(handle, 0, 1.0F) == 0);
+    for (int i = 0; i < 500; ++i)
+        prototype_render_for_test(handle, output.data(), 96, 2);
+    const auto sequence = prototype_get_sequence_state(handle);
+    assert(sequence.running == 1 && sequence.bpm == 240.0);
+    assert(sequence.step_mask == 0x1113 && sequence.current_step < 16);
+    assert(sequence.missed_steps == 0);
+    assert(prototype_get_diagnostics(handle).trigger_count > 4);
+    assert(prototype_set_playing(handle, 0) == 1);
+    const auto stoppedCount = prototype_get_diagnostics(handle).trigger_count;
+    for (int i = 0; i < 100; ++i)
+        prototype_render_for_test(handle, output.data(), 96, 2);
+    assert(prototype_get_diagnostics(handle).trigger_count == stoppedCount);
+    assert(prototype_get_sequence_state(handle).current_step == 16);
+    for (auto sample : output) assert(sample == 0.0F);
+    assert(prototype_schedule_trigger(handle, 0, 1.0F) == 1);
+    assert(prototype_set_playing(handle, 1) == 1);
+    assert(prototype_set_playing(handle, 0) == 1);
+    assert(prototype_schedule_trigger(handle, 0, 1.0F) == 1);
+    prototype_stop_audio(handle);
+    assert(prototype_set_playing(handle, 1) == 0);
+    assert(prototype_get_sequence_state(handle).step_mask == 0x1113);
     prototype_destroy(handle);
     prototype_destroy(nullptr);
     return 0;

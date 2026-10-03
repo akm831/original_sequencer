@@ -22,6 +22,7 @@ class PrototypeScreen extends StatefulWidget {
 class _PrototypeScreenState extends State<PrototypeScreen> {
   PrototypeNativeBridge? _bridge;
   PrototypeDiagnostics? _diagnostics;
+  PrototypeSequenceState? _sequence;
   Timer? _diagnosticsTimer;
   Object? _bridgeError;
   String? _triggerStatus;
@@ -42,7 +43,7 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
       _bridge = bridge;
       _refreshDiagnostics();
       _diagnosticsTimer = Timer.periodic(
-        const Duration(milliseconds: 200),
+        const Duration(milliseconds: 50),
         (_) => _refreshDiagnostics(),
       );
     } catch (error) {
@@ -55,9 +56,26 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
     if (bridge == null) return;
     try {
       final diagnostics = bridge.diagnostics();
-      if (mounted) setState(() => _diagnostics = diagnostics);
+      final sequence = bridge.sequenceState();
+      if (mounted) {
+        setState(() {
+          _diagnostics = diagnostics;
+          _sequence = sequence;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _bridgeError = error);
+    }
+  }
+
+  void _control(bool Function(PrototypeNativeBridge) action) {
+    final bridge = _bridge;
+    if (bridge == null) return;
+    try {
+      if (!action(bridge)) throw StateError('Audio control unavailable.');
+      _refreshDiagnostics();
+    } catch (error) {
+      setState(() => _bridgeError = error);
     }
   }
 
@@ -87,6 +105,9 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
   @override
   Widget build(BuildContext context) {
     final d = _diagnostics;
+    final sequence = _sequence;
+    final ready = _bridge != null && d != null && d.sampleRate > 0;
+    final running = sequence?.running ?? false;
     return Scaffold(
       appBar: AppBar(title: const Text('Sequencer Prototype')),
       body: SingleChildScrollView(
@@ -94,20 +115,67 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Flutter + Native Audio — P3 trigger',
+            const Text('16ステップ・シーケンサー',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            Text('Native bridge: ${_bridge != null ? 'loaded' : 'not loaded'}'),
-            Text('Audio stream: ${d != null && d.sampleRate > 0 ? 'ready' : 'unavailable'}'),
+            Text(ready ? (running ? '再生中' : '停止中 — 再生を押すとループします') : '音声を準備中'),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _bridge != null && d != null && d.sampleRate > 0 ? _trigger : null,
-              child: const Text('Trigger 50 ms test burst'),
+            FilledButton.icon(
+              onPressed: ready ? () => _control((b) => b.setPlaying(!running)) : null,
+              icon: Icon(running ? Icons.stop : Icons.play_arrow),
+              label: Text(running ? '停止' : '再生'),
             ),
-            const Text('220 Hz / peak amplitude 0.08 / silence between bursts'),
+            const SizedBox(height: 16),
+            Text('BPM ${(sequence?.bpm ?? 120).round()}'),
+            Slider(
+              min: 60,
+              max: 240,
+              divisions: 180,
+              value: sequence?.bpm ?? 120,
+              label: '${(sequence?.bpm ?? 120).round()}',
+              onChanged: ready ? (value) => _control((b) => b.setBpm(value)) : null,
+            ),
+            const Text('ステップをタップして音をオン／オフ（1小節を繰り返し）'),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.4,
+              children: List.generate(16, (step) {
+                final enabled = ((sequence?.stepMask ?? 0x1111) & (1 << step)) != 0;
+                final current = running && sequence?.currentStep == step;
+                return Semantics(
+                  label: 'ステップ ${step + 1}',
+                  toggled: enabled,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: enabled ? Colors.deepPurple : Colors.grey.shade100,
+                      foregroundColor: enabled ? Colors.white : Colors.black87,
+                      side: BorderSide(color: current ? Colors.orange : Colors.grey,
+                        width: current ? 4 : 1),
+                    ),
+                    onPressed: ready ? () => _control((b) => b.setStep(step, !enabled)) : null,
+                    child: Text('${step + 1}', style: const TextStyle(fontSize: 20)),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: ready && !running ? _trigger : null,
+              child: const Text('音のテスト（停止中のみ）'),
+            ),
+            const Text('テスト音：220 Hz、50 ms。再生中は有効なステップで鳴ります。'),
             if (_triggerStatus != null) Text(_triggerStatus!),
             if (d != null) ...[
               const SizedBox(height: 16),
+              ExpansionTile(
+                title: const Text('音声診断'),
+                children: [
+              Text('missedSteps: ${sequence?.missedSteps ?? 0}'),
               Text('sampleRate: ${d.sampleRate}'),
               Text('callbackFrames: ${d.callbackFrames} (min ${d.callbackFramesMin} / max ${d.callbackFramesMax})'),
               Text('renderedFrames: ${d.renderedFrames}'),
@@ -123,6 +191,8 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
               Text('queueOverflowCount: ${d.queueOverflowCount}'),
               Text('triggerCount: ${d.triggerCount}'),
               Text('lastTriggerOffset: ${d.lastTriggerOffset}'),
+                ],
+              ),
             ],
             if (_bridgeError != null) ...[
               const SizedBox(height: 16),

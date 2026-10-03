@@ -8,9 +8,21 @@
 
 namespace original_sequencer::prototype::flutter_native {
 
-AndroidAudioBackend::AndroidAudioBackend(AudioCore& core) noexcept : core_(core) {}
+AndroidAudioBackend::AndroidAudioBackend(AudioCore& core) noexcept : core_(core) {
+    schedulerThread_ = std::thread([this] {
+        while (!exitScheduler_.load(std::memory_order_acquire)) {
+            {
+                std::lock_guard<std::mutex> lock(streamMutex_);
+                if (!closing_ && stream_ && shouldRun_.load(std::memory_order_acquire)) sequencer_.advance();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    });
+}
 
 AndroidAudioBackend::~AndroidAudioBackend() {
+    exitScheduler_.store(true, std::memory_order_release);
+    if (schedulerThread_.joinable()) schedulerThread_.join();
     stop();
 }
 
@@ -21,6 +33,7 @@ bool AndroidAudioBackend::start() noexcept {
     if (stream_) return true;
     if (!openStreamLocked()) {
         core_.shutdown();
+        sequencer_.deviceReset();
         triggerInput_.reset();
         shouldRun_.store(false, std::memory_order_release);
         return false;
@@ -47,6 +60,7 @@ bool AndroidAudioBackend::openStreamLocked() noexcept {
     const auto maxCallbackFrames = static_cast<std::uint32_t>(
         std::max<std::int32_t>(framesPerBurst > 0 ? framesPerBurst * 2 : 0, 256));
     core_.initialize(static_cast<double>(sampleRate), maxCallbackFrames);
+    sequencer_.deviceReset();
     triggerInput_.reset();
     callbackStartFrame_ = 0;
     stream_ = std::move(stream);
@@ -56,6 +70,7 @@ bool AndroidAudioBackend::openStreamLocked() noexcept {
         stream_->close();
         stream_.reset();
         core_.shutdown();
+        sequencer_.deviceReset();
         triggerInput_.reset();
         return false;
     }
@@ -67,6 +82,7 @@ void AndroidAudioBackend::stop() noexcept {
     {
         std::lock_guard<std::mutex> lock(streamMutex_);
         if (closing_) return;
+        sequencer_.stop();
         closing_ = true;
         shouldRun_.store(false, std::memory_order_release);
         streamToClose = std::move(stream_);
@@ -77,6 +93,7 @@ void AndroidAudioBackend::stop() noexcept {
     }
     std::lock_guard<std::mutex> lock(streamMutex_);
     core_.shutdown();
+    sequencer_.deviceReset();
     triggerInput_.reset();
     closing_ = false;
 }
@@ -89,6 +106,7 @@ void AndroidAudioBackend::onErrorAfterClose(oboe::AudioStream* audioStream, oboe
     stream_.reset();
     if (!openStreamLocked()) {
         core_.shutdown();
+        sequencer_.deviceReset();
         triggerInput_.reset();
         shouldRun_.store(false, std::memory_order_release);
     }
@@ -97,13 +115,37 @@ void AndroidAudioBackend::onErrorAfterClose(oboe::AudioStream* audioStream, oboe
 bool AndroidAudioBackend::scheduleTrigger(std::uint32_t delayFrames, float value) noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
     if (closing_ || !stream_ || !shouldRun_.load(std::memory_order_acquire)) return false;
+    if (sequencer_.state().running) return false;
     return triggerInput_.submit(delayFrames, value);
+}
+
+bool AndroidAudioBackend::setPlaying(bool playing) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    if (!playing) { sequencer_.stop(); return true; }
+    if (closing_ || !stream_ || !shouldRun_.load(std::memory_order_acquire)) return false;
+    return sequencer_.play();
+}
+
+bool AndroidAudioBackend::setBpm(double bpm) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setBpm(bpm);
+}
+
+bool AndroidAudioBackend::setStep(std::uint32_t step, bool enabled) noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.setStep(step, enabled);
+}
+
+SequenceState AndroidAudioBackend::sequenceState() noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return sequencer_.state();
 }
 
 void AndroidAudioBackend::initializeWhenStopped(double sampleRate, std::uint32_t maxCallbackFrames) noexcept {
     std::lock_guard<std::mutex> lock(streamMutex_);
     if (closing_ || stream_) return;
     core_.initialize(sampleRate, maxCallbackFrames);
+    sequencer_.deviceReset();
     triggerInput_.reset();
 }
 
