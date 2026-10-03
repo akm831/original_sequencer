@@ -68,7 +68,7 @@ P4の実装:
 - Stop / Playの世代番号で旧Commandを破棄。停止後の既存Burstは最大50 msで終了。再生は常にステップ1から再開
 - BPM / Pattern変更は未予約のEventへ適用。BPMは次の未予約境界から間隔が変わる。Device Restartは停止状態へ戻し、BPM / Patternは維持
 - 無音ステップもSample Offset付きMarkerで位置を表示。Scheduler遅延は追いつき連打せずSkipし、missedStepsへ記録。Queue overflow時はTransport停止
-- Host tests 5本とUndefinedBehaviorSanitizerで検証。Flutter analyze / Android APKはGitHub Actionsで検証する。P4実機確認は未実施
+- Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4実機確認は未実施
 - JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
