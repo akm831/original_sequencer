@@ -2,7 +2,7 @@
 
 ## Current Topic
 
-Android第一でPlayable Grooveboxを拡張。ユーザーの指示によりJUCE交互比較は保留し、Flutter + C++ / Oboeで進める。最終的な他Platform互換性は後続検証。
+808系Percussion / 303系Bassの音源と編集をAndroid優先で拡張。ユーザーの指示によりJUCE交互比較は保留し、Flutter + C++ / Oboeで進める。最終的な他Platform互換性は後続検証。
 
 ## Recently Completed
 
@@ -10,7 +10,9 @@ Android第一でPlayable Grooveboxを拡張。ユーザーの指示によりJUCE
 - JUCE P4 ARM64 APKもBuild済み（Run 37127513073）。実機比較は保留、Workflowは手動実行に変更。
 - 4 Tracks（Kick / Snare / Hat / Bass）、4 Patterns、各16 Steps、Accent / Volume / Muteを追加。次の未予約小節先頭でPattern切り替え。
 - Version付きJSONの自動保存 / 手動保存 / 再起動時復元。AtomicFileで旧保存を保護し、未知Schema / 読み込み失敗では上書き停止。
-- Android Version 0.0.3+3。GitHub Actions Run `37130262542`でC++ tests 7本、Flutter analyze、Flutter tests 11本、ARM64 Debug APK / Native Library Packagingすべて成功。Artifact `11276104349`（2026-10-17まで）。PR #6をmain `08c33c0`へ統合済み。新機能の実機確認は未実施。
+- Android Version 0.0.3+3。GitHub Actions Run `37130262542`でC++ tests 7本、Flutter analyze、Flutter tests 11本、ARM64 Debug APK / Native Library Packagingすべて成功。Artifact `11276104349`（2026-10-17まで）。PR #6をmain `08c33c0`へ統合済み。ユーザーが実機で「かなりよく動く」と確認。診断画像はmissedSteps / Overflow / Restart 0、48 kHz / 96 frames、p99 5%、Peak 41.32%。保存復元の個別確認は未報告。
+
+- Version 0.0.4+4: Analog Percussion、Saw / Square Acid Bass、Pitch / Tone / Decay / Cutoff / Resonance / Filter Envelope、Bass Note / Accent / Slide、Hat開閉、Schema 1→2 Migrationを実装。新APKとCI結果は最新PR参照。
 
 ## Important Decisions
 
@@ -18,7 +20,7 @@ Audio Callbackにallocation / lock / File I/Oを持ち込まない。Core Musica
 
 ## Next
 
-新APKで4 Trackの聴感、Pattern切り替え、Volume / Mute / Accent、App再起動後の復元を実機確認。その後SamplerのImport / 発音、Track Engine選択、Note編集、Independent Track Length、Project管理を順に進める。Route Change / 実機長時間負荷は未確認。Web / iOS / DesktopとJUCE再比較はAndroidのPlayable機能を固めてから。
+新APKで808系Percussion / Acid Bassの聴感と調整幅、Bass Note / Slide / Accent、旧保存の復元を実機確認。以後音色の改善、Clap / Tom / Rim等の追加、Parameter Lock、Track Lengthへ進む。Sampler / Platform互換性の順番は必要に応じて後続。Route Change / 実機長時間負荷は未確認。
 
 ## References
 

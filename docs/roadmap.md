@@ -6,6 +6,8 @@
 
 Android Flutter経路を優先。Transport / 単音16 Steps / 表示同期は実機確認済み。次は4音源・4 Tracks・4 Patterns・Volume / Mute / Accent・内部保存をまとめた演奏Slice。以降Sampler Import、Engine選択、Note編集、Track Length、Project管理へ進む。JUCE比較や他Platform SmokeをAndroid機能開発の開始条件にしない。
 
+ユーザーの音色優先指示により、次段階は808系Percussion / 303系Bass → Note / Accent / Slide → 音色調整・Percussion種類追加 → Parameter Lock / Track Length。Sampler Importはこの音源Sliceの後へ変更（docs/decisions.md 2026-10-04）。
+
 ## Phase 0 — 仕様策定
 
 Status: 基本仕様策定済み。Androidの最小演奏Sliceを実装中。

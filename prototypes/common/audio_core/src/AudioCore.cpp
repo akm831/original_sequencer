@@ -60,6 +60,7 @@ bool AudioCore::enqueueCommand(const AudioCommand& command) noexcept {
     if ((command.type != AudioCommandType::trigger && command.type != AudioCommandType::sequenceStep)
         || (command.sequenceGeneration != 0 && command.sequenceStep > 16)
         || command.voice > 4 || command.sequencePattern > 3
+        || !command.sound.valid() || command.note < 24 || command.note > 84 || command.gateFrames > 192000
         || !std::isfinite(command.value)
         || command.value < 0.0F || command.value > 1.0F) return false;
     return commandQueue_.tryPush(command);
@@ -85,20 +86,7 @@ void AudioCore::renderBurst(const OutputView& output, std::uint32_t begin, std::
             if (burstPhase_ >= tau) burstPhase_ -= tau;
             --burstRemaining_;
         }
-        for (std::size_t i = 0; i < drums_.size(); ++i) {
-            auto& voice = drums_[i];
-            if (voice.remaining == 0) continue;
-            const auto envelope = static_cast<double>(voice.remaining) / voice.length;
-            voice.noise ^= voice.noise << 13; voice.noise ^= voice.noise >> 17; voice.noise ^= voice.noise << 5;
-            const auto noise = static_cast<double>(voice.noise) / 2147483648.0 - 1.0;
-            const auto frequency = i == 0 ? 45.0 + 100.0 * envelope * envelope : (i == 3 ? 110.0 : 180.0);
-            voice.phase += tau * frequency / sampleRate_;
-            if (voice.phase >= tau) voice.phase -= tau;
-            const auto tone = std::sin(voice.phase);
-            const auto wave = i == 1 ? noise * 0.8 + tone * 0.2 : (i == 2 ? noise : tone);
-            value += static_cast<float>(wave * envelope * envelope * voice.amplitude);
-            --voice.remaining;
-        }
+        for (auto& voice : drums_) value += voice.sample();
         value = std::clamp(value, -0.8F, 0.8F);
         for (std::uint32_t channel = 0; channel < output.channels; ++channel) {
             if (output.interleaved != nullptr)
@@ -142,13 +130,10 @@ void AudioCore::consumeCommands(const OutputView& output, std::uint64_t callback
         diagnosticTriggerCount_.fetch_add(1, std::memory_order_relaxed);
         diagnosticLastTriggerOffset_.store(offset, std::memory_order_relaxed);
         if (pendingCommand_.voice > 0 && sampleRate_ > 0.0) {
-            auto& voice = drums_[pendingCommand_.voice - 1];
-            constexpr std::array<double, 4> durations{0.16, 0.12, 0.04, 0.20};
-            voice.length = static_cast<std::uint32_t>(std::clamp(sampleRate_ * durations[pendingCommand_.voice - 1], 1.0, 96000.0));
-            voice.remaining = voice.length;
-            voice.phase = 0;
-            voice.noise = 0x9e3779b9U + pendingCommand_.voice;
-            voice.amplitude = pendingCommand_.value * 0.16F;
+            drums_[pendingCommand_.voice - 1].trigger(pendingCommand_.voice-1, pendingCommand_.sound,
+                pendingCommand_.value, pendingCommand_.note, pendingCommand_.accent,
+                pendingCommand_.slide, pendingCommand_.openHat, pendingCommand_.gateFrames,
+                sampleRate_, pendingCommand_.sequenceGeneration);
             hasPendingCommand_ = false;
             continue;
         }

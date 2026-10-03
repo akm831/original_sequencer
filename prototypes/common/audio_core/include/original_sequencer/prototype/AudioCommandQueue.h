@@ -1,5 +1,6 @@
 #pragma once
 
+#include "original_sequencer/prototype/AnalogVoice.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -22,6 +23,9 @@ struct AudioCommand {
     std::uint64_t sequenceGeneration = 0; // 0 = standalone P3 trigger
     std::uint32_t sequenceStep = 16;
     std::uint32_t sequencePattern = 0;
+    SoundSettings sound{};
+    std::uint32_t note = 45, gateFrames = 6000;
+    bool accent = false, slide = false, openHat = false;
 };
 
 template <std::size_t Capacity>

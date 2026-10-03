@@ -66,12 +66,21 @@ class _PrototypeScreenState extends State<PrototypeScreen>
     if (mounted) setState(() {});
   }
 
+  bool _sendTrack(PrototypeNativeBridge bridge, int p, int t, GrooveTrack data) {
+    if (!bridge.setTrack(p,t,data.mask,data.accents,data.level,data.muted) ||
+        !bridge.setSound(p,t,data.sound)) return false;
+    for (var step=0; step<16; step++) {
+      if (!bridge.setNote(p,t,step,data.notes[step], (data.flags & (1<<step)) != 0)) return false;
+    }
+    return true;
+  }
+
   void _applyProject(PrototypeNativeBridge bridge) {
     if (!bridge.setBpm(_project.bpm)) throw StateError('BPM unavailable');
     for (var p = 0; p < 4; p++) {
       for (var t = 0; t < 4; t++) {
         final data = _project.patterns[p][t];
-        if (!bridge.setTrack(p, t, data.mask, data.accents, data.level, data.muted)) {
+        if (!_sendTrack(bridge,p,t,data)) {
           throw StateError('Track unavailable');
         }
       }
@@ -100,29 +109,81 @@ class _PrototypeScreenState extends State<PrototypeScreen>
   void _editTrack(GrooveTrack data) {
     final bridge = _bridge;
     if (bridge == null) return;
-    if (!bridge.setTrack(_editingPattern, _track, data.mask, data.accents, data.level, data.muted)) return;
+    if (!_sendTrack(bridge,_editingPattern,_track,data)) return;
     setState(() => _project = _project.edit(_editingPattern, _track, data));
     _scheduleSave();
   }
 
   void _openTrackControls() {
-    showModalBottomSheet<void>(context: context, builder: (context) => StatefulBuilder(
-      builder: (context, updateSheet) {
-        final data = _project.patterns[_editingPattern][_track];
-        return SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(
+    final pattern = _editingPattern, track = _track;
+    showModalBottomSheet<void>(context: context, isScrollControlled: true,
+      builder: (context) => StatefulBuilder(builder: (context, updateSheet) {
+        final data = _project.patterns[pattern][track];
+        void change(GrooveTrack next) { _editTrack(next); updateSheet(() {}); }
+        Widget parameter(String label, double value, GrooveSound Function(double) apply) => Column(
           mainAxisSize: MainAxisSize.min, children: [
-            Text(GrooveProject.names[_track], style: Theme.of(context).textTheme.titleLarge),
-            SwitchListTile(title: const Text('ミュート'), value: data.muted,
-              onChanged: (value) { _editTrack(data.copy(muted: value)); updateSheet(() {}); }),
-            Text('音量 ${(data.level * 100).round()}%'),
-            Slider(value: data.level, onChanged: (value) {
-              _editTrack(data.copy(level: value)); updateSheet(() {});
-            }),
-            const Text('ステップ長押しでアクセント（強い音）を切り替えます'),
+            Text('$label ${(value*100).round()}%'),
+            Slider(value: value, onChanged: (v) => change(data.copy(sound: apply(v)))),
+          ]);
+        return SafeArea(child: SizedBox(height: MediaQuery.sizeOf(context).height*.8,
+          child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(20), child: Column(
+            mainAxisSize: MainAxisSize.min, children: [
+              Text('${GrooveProject.names[track]} · ${track==3 ? 'Acid Bass' : 'Analog Percussion'}',
+                style: Theme.of(context).textTheme.titleLarge),
+              SwitchListTile(title: const Text('ミュート'), value: data.muted,
+                onChanged: (v) => change(data.copy(muted: v))),
+              Text('音量 ${(data.level*100).round()}%'),
+              Slider(value: data.level, onChanged: (v) => change(data.copy(level: v))),
+              if (track==3) ...[
+                SegmentedButton<int>(segments: const [
+                  ButtonSegment(value: 0,label: Text('ノコギリ波')),
+                  ButtonSegment(value: 1,label: Text('矩形波')),
+                ], selected: {data.sound.waveform},
+                  onSelectionChanged: (v) => change(data.copy(sound: data.sound.copy(waveform: v.first)))),
+                parameter('カットオフ',data.sound.cutoff,(v)=>data.sound.copy(cutoff:v)),
+                parameter('レゾナンス',data.sound.resonance,(v)=>data.sound.copy(resonance:v)),
+                parameter('エンベロープ',data.sound.envelope,(v)=>data.sound.copy(envelope:v)),
+              ] else ...[
+                parameter('ピッチ',data.sound.pitch,(v)=>data.sound.copy(pitch:v)),
+                parameter('トーン',data.sound.tone,(v)=>data.sound.copy(tone:v)),
+              ],
+              parameter('ディケイ',data.sound.decay,(v)=>data.sound.copy(decay:v)),
+              const Text('ステップ長押しで詳細編集。ベースは音程とスライド、ハットは開閉を設定できます。'),
+            ],
+          )))));
+      }));
+  }
+
+  void _openStepEditor(int step) {
+    final pattern = _editingPattern, track = _track;
+    showModalBottomSheet<void>(context: context, isScrollControlled: true,
+      builder: (context) => StatefulBuilder(builder: (context, updateSheet) {
+        final data = _project.patterns[pattern][track];
+        void change(GrooveTrack next) { _editTrack(next); updateSheet(() {}); }
+        Widget toggle(String label, bool value, ValueChanged<bool> onChanged) =>
+          SwitchListTile(title: Text(label),value: value,onChanged: onChanged);
+        return SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(20),child: Column(
+          mainAxisSize: MainAxisSize.min, children: [
+            Text('${GrooveProject.names[track]} · ステップ ${step+1}',style: Theme.of(context).textTheme.titleLarge),
+            toggle('発音', (data.mask & (1<<step)) != 0,
+              (v)=>change(data.copy(mask: v ? data.mask | (1<<step) : data.mask & ~(1<<step)))),
+            toggle('アクセント', (data.accents & (1<<step)) != 0,
+              (v)=>change(data.copy(accents: data.accents ^ (1<<step)))),
+            if(track==3) ...[
+              Text('音程 ${noteName(data.notes[step])}'),
+              Slider(min:24,max:84,divisions:60,value:data.notes[step].toDouble(),
+                label:noteName(data.notes[step]),onChanged:(v) {
+                  final notes=data.notes.toList(); notes[step]=v.round(); change(data.copy(notes:notes));
+                }),
+              toggle('次のステップへスライド', (data.flags & (1<<step)) != 0,
+                (v)=>change(data.copy(flags:data.flags ^ (1<<step)))),
+              const Text('直後のステップが発音する場合に、音をつないで音程を滑らかに変えます。'),
+            ],
+            if(track==2) toggle('オープンハット', (data.flags & (1<<step)) != 0,
+              (v)=>change(data.copy(flags:data.flags ^ (1<<step)))),
           ],
-        )));
-      },
-    ));
+        ))));
+      }));
   }
 
   void _openNativeBridge() {
@@ -296,7 +357,7 @@ class _PrototypeScreenState extends State<PrototypeScreen>
           const SizedBox(width: 16),
           Expanded(child: Text(_saveStatus, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
           TextButton(onPressed: ready ? _openTrackControls : null,
-            child: Text(_project.patterns[_editingPattern][_track].muted ? 'ミュート中 · 音量' : '音量・ミュート')),
+            child: Text(_project.patterns[_editingPattern][_track].muted ? 'ミュート中 · 音色' : '音色・音量')),
         ]),
         Expanded(child: SequencerPanel(
           sequence: PrototypeSequenceState(_sequence?.bpm ?? _project.bpm, _sequence?.running ?? false,
@@ -304,10 +365,10 @@ class _PrototypeScreenState extends State<PrototypeScreen>
             _sequence?.currentPattern == _editingPattern ? (_sequence?.currentStep ?? 16) : 16,
             _sequence?.missedSteps ?? 0), ready: ready,
           accentMask: _project.patterns[_editingPattern][_track].accents,
-          onAccent: (step) {
-            final data = _project.patterns[_editingPattern][_track];
-            _editTrack(data.copy(accents: data.accents ^ (1 << step)));
-          },
+          onAccent: _openStepEditor,
+          notes: _track==3 ? _project.patterns[_editingPattern][_track].notes : null,
+          flags: _project.patterns[_editingPattern][_track].flags,
+          bass: _track==3,
           onPlaying: (playing) => _control((b) => b.setPlaying(playing)),
           onBpm: (bpm) {
             if (!_control((b) => b.setBpm(bpm))) return;

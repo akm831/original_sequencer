@@ -41,6 +41,17 @@ void main() {
     });
   }
 
+  testWidgets('bass notes and outgoing slide are visible and long press opens editor', (tester) async {
+    int? edit;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SequencerPanel(
+      sequence:const PrototypeSequenceState(120,false,15,16,0),ready:true,
+      onPlaying:(_){},onBpm:(_){},onStep:(_,__){},
+      onAccent:(step)=>edit=step,notes:List.filled(16,36),flags:1,bass:true,
+    ))));
+    expect(find.text('C2 ↗'),findsOneWidget);
+    await tester.longPress(find.byKey(const Key('step-0')));
+    expect(edit,0); expect(tester.takeException(),isNull);
+  });
   testWidgets('step edits and transport send the requested intents', (tester) async {
     bool? playing;
     int? step;

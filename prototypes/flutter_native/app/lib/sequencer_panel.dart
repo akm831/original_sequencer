@@ -5,12 +5,15 @@ import 'native_bridge.dart';
 // Presentation only: callbacks send intents to the native transport.
 class SequencerPanel extends StatelessWidget {
   const SequencerPanel({super.key, required this.sequence, required this.ready,
-    required this.onPlaying, required this.onBpm, required this.onStep, this.onAccent, this.accentMask = 0});
+    required this.onPlaying, required this.onBpm, required this.onStep, this.onAccent, this.accentMask = 0, this.notes, this.flags = 0, this.bass = false});
 
   final PrototypeSequenceState? sequence;
   final bool ready;
   final ValueChanged<int>? onAccent;
   final int accentMask;
+  final List<int>? notes;
+  final int flags;
+  final bool bass;
   final ValueChanged<bool> onPlaying;
   final ValueChanged<double> onBpm;
   final void Function(int, bool) onStep;
@@ -80,7 +83,12 @@ class SequencerPanel extends StatelessWidget {
                             width: current ? 4 : 1),
                         ),
                         onPressed: ready ? () => onStep(step, !enabled) : null,
-                        child: Text('${step + 1}${(accentMask & (1 << step)) != 0 ? '•' : ''}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text('${step+1}${(accentMask & (1<<step)) != 0 ? '•' : ''}',
+                            style: const TextStyle(fontSize: 20,fontWeight: FontWeight.w600)),
+                          if(notes!=null) Text('${noteName(notes![step])}${(flags & (1<<step)) != 0 ? ' ↗' : ''}',style: const TextStyle(fontSize: 11)),
+                          if(!bass && (flags & (1<<step)) != 0) const Text('OPEN',style: TextStyle(fontSize: 10)),
+                        ]),
                       ),
                     ));
                   }),
@@ -89,9 +97,14 @@ class SequencerPanel extends StatelessWidget {
             );
           })),
           const SizedBox(height: 8),
-          const Text('ステップをタップして音をオン／オフ'),
+          const Text('タップで発音ON／OFF · 長押しで編集'),
         ]),
       ),
     );
   }
+}
+
+String noteName(int note) {
+  const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+  return '${names[note%12]}${note~/12-1}';
 }
