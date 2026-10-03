@@ -87,6 +87,10 @@ void main() {
     const original='{"schemaVersion":99,"important":"keep me"}';
     String? exported;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('original_sequencer/audio_focus'), (_) async => null);
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('original_sequencer/audio_focus'), null));
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('original_sequencer/project'),(call) async {
         if(call.method=='load') return original;
         if(call.method=='export') {exported=call.arguments as String;return true;}
