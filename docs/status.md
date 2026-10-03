@@ -68,12 +68,13 @@ P4の実装:
 - Stop / Playの世代番号で旧Commandを破棄。停止後の既存Burstは最大50 msで終了。再生は常にステップ1から再開
 - BPM / Pattern変更は未予約のEventへ適用。BPMは次の未予約境界から間隔が変わる。Device Restartは停止状態へ戻し、BPM / Patternは維持
 - 無音ステップもSample Offset付きMarkerで位置を表示。Scheduler遅延は追いつき連打せずSkipし、missedStepsへ記録。Queue overflow時はTransport停止
-- Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4実機確認は未実施
+- Host tests 5本とUndefinedBehaviorSanitizerで検証。GitHub Actions Run `37088456593`でHost tests、Flutter analyze、ARM64 APK Build、Native Library Packaging検査すべて成功。Artifact `11261676177`（2026-10-17まで）。PR #2をmainへ統合済み。P4の実機発音はユーザー確認済み。音に対するステップ表示の遅れが報告された（2026-10-03）
+- ステップ表示の50 ms pollingを描画フレーム同期Tickerへ変更し、強調枠のアニメーションを無効化。再生時のみTickerを動かし、変化時だけ再描画。負荷診断は200 ms周期へ分離。実機での改善量は未測定
 - JUCEはP3まで。P4 UI / Control Thread移植と候補比較は後続。技術選定はまだ確定しない
 
 次に進める主題:
 
-1. P4 APKで実機のループ、BPM変更、編集、停止／再開を確認
+1. 表示遅延修正版APKで実機の音とステップ強調の同期を確認
 2. JUCEへ同等のP4経路を接続し実機比較
 3. Device Restart / Route Change、Live Pad独立経路の検証
 

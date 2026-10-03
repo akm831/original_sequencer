@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'native_bridge.dart';
 
 void main() => runApp(const PrototypeApp());
@@ -19,17 +20,20 @@ class PrototypeScreen extends StatefulWidget {
   State<PrototypeScreen> createState() => _PrototypeScreenState();
 }
 
-class _PrototypeScreenState extends State<PrototypeScreen> {
+class _PrototypeScreenState extends State<PrototypeScreen>
+    with SingleTickerProviderStateMixin {
   PrototypeNativeBridge? _bridge;
   PrototypeDiagnostics? _diagnostics;
   PrototypeSequenceState? _sequence;
   Timer? _diagnosticsTimer;
+  late final Ticker _playheadTicker;
   Object? _bridgeError;
   String? _triggerStatus;
 
   @override
   void initState() {
     super.initState();
+    _playheadTicker = createTicker((_) => _refreshPlayhead());
     _openNativeBridge();
   }
 
@@ -43,7 +47,7 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
       _bridge = bridge;
       _refreshDiagnostics();
       _diagnosticsTimer = Timer.periodic(
-        const Duration(milliseconds: 50),
+        const Duration(milliseconds: 200),
         (_) => _refreshDiagnostics(),
       );
     } catch (error) {
@@ -62,9 +66,41 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
           _diagnostics = diagnostics;
           _sequence = sequence;
         });
+        _syncPlayheadTicker();
       }
     } catch (error) {
       if (mounted) setState(() => _bridgeError = error);
+    }
+  }
+
+  // The native audio playhead is authoritative. Observe it before each paint;
+  // this ticker never schedules notes or extrapolates the musical clock.
+  void _refreshPlayhead() {
+    final bridge = _bridge;
+    if (bridge == null || !mounted) return;
+    try {
+      final next = bridge.sequenceState();
+      final previous = _sequence;
+      if (previous == null ||
+          next.currentStep != previous.currentStep ||
+          next.running != previous.running ||
+          next.bpm != previous.bpm ||
+          next.stepMask != previous.stepMask ||
+          next.missedSteps != previous.missedSteps) {
+        setState(() => _sequence = next);
+      }
+      _syncPlayheadTicker();
+    } catch (error) {
+      _playheadTicker.stop();
+      setState(() => _bridgeError = error);
+    }
+  }
+
+  void _syncPlayheadTicker() {
+    if (_sequence?.running ?? false) {
+      if (!_playheadTicker.isActive) _playheadTicker.start();
+    } else if (_playheadTicker.isActive) {
+      _playheadTicker.stop();
     }
   }
 
@@ -97,6 +133,7 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
 
   @override
   void dispose() {
+    _playheadTicker.dispose();
     _diagnosticsTimer?.cancel();
     _bridge?.dispose();
     super.dispose();
@@ -152,6 +189,7 @@ class _PrototypeScreenState extends State<PrototypeScreen> {
                   toggled: enabled,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
+                      animationDuration: Duration.zero,
                       backgroundColor: enabled ? Colors.deepPurple : Colors.grey.shade100,
                       foregroundColor: enabled ? Colors.white : Colors.black87,
                       side: BorderSide(color: current ? Colors.orange : Colors.grey,

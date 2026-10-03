@@ -44,4 +44,4 @@ Headless Render APIはHost専用であり、AndroidにはExportしません。
 
 「再生」で1小節の16ステップを繰り返します。初期は120 BPM、ステップ1 / 5 / 9 / 13が有効です。ステップをタップしてオン／オフ、Sliderで60〜240 BPMを変更します。オレンジの枠がNative Audioの再生位置です。「停止」は予約Eventを取り消し、現在の短い音は50 ms以内に終了します。再開はステップ1からです。
 
-Native Control Threadが5 ms間隔で約50 ms先まで予約します。Flutterの50 ms Timerは表示の更新のみです。編集は未予約のEventから反映し、BPM変更は次の未予約境界から新しい間隔になります。Device RestartはTransportを停止し、BPMとPatternを維持します。Patternはアプリ終了で失われます。診断のmissedStepsはScheduler遅延でSkipしたStep数です。P3単発テストは停止中のみ利用できます。
+Native Control Threadが5 ms間隔で約50 ms先まで予約します。FlutterのTickerは描画フレームごとにNative再生位置を確認し、変化時に表示を更新します。ステップ強調枠はアニメーションせず切り替えます。負荷診断は200 ms周期です。UIは音を予約しません。編集は未予約のEventから反映し、BPM変更は次の未予約境界から新しい間隔になります。Device RestartはTransportを停止し、BPMとPatternを維持します。Patternはアプリ終了で失われます。診断のmissedStepsはScheduler遅延でSkipしたStep数です。P3単発テストは停止中のみ利用できます。
