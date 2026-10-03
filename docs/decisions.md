@@ -588,6 +588,6 @@ AndroidではPlay直前にMEDIA / MUSICのAudio Focusを要求し、拒否時は
 
 ## 2026-10-04 — テストAPK署名固定とProject Backup
 
-従来CIはRunnerごとにAndroid default debug keystoreが変わり得るため、更新Installの署名互換性を保証できなかった。以後はRepository内の公開TEST ONLY PKCS12鍵でDebugを署名し、APKの証明書SHA-256をCIで検査・build-info.jsonへ記録する。この鍵は秘密ではなく製品Releaseに使わない。過去のAPKとは署名が異なる可能性があるため、初回移行前にProjectを退避する。過去APKのprivate signing keyは現在の成果物から復元できない。
+従来CIはRunnerごとにAndroid default debug keystoreが変わり得るため、更新Installの署名互換性を保証できなかった。以後はRepository内の公開TEST ONLY PKCS12鍵でDebugを署名し、APKの証明書SHA-256をCIで検査・build-info.jsonへ記録する。この鍵は秘密ではなく製品Releaseに使わない。ReleaseのDebug署名Fallbackも外し、製品署名は別途設定する。過去のAPKとは署名が異なる可能性があるため、初回移行前にProjectを退避する。過去APKのprivate signing keyは現在の成果物から復元できない。
 
 Android Storage Access Frameworkのファイル選択で現在のJSONを書き出し／読み込みできる。読み込みはサイズ上限・Schema検査・ユーザーReview・既存内部保存の別名Backupをすべて通してから反映する。Cancel / Parse Error / Backup Errorでは置き換えない。読めない旧保存のExportはUI Defaultではなく元のRaw JSONを使う。Sample Asset未導入のため今回はMetadata単体、製品Bundle Formatは後続。

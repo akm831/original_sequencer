@@ -69,7 +69,8 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // Production release signing must be configured separately.
+            signingConfig = null
         }
     }
 }
