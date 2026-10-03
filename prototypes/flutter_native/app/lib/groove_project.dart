@@ -73,7 +73,7 @@ class GrooveProject {
     'patterns': patterns.map((p) => p.map((t) => t.toJson()).toList()).toList()});
   factory GrooveProject.decode(String source) {
     final data = jsonDecode(source);
-    if (data is! Map || ![1,2].contains(data['schemaVersion']) || data['kind'] != 'android-groovebox' || data['ppqn'] != 960) {
+    if (data is! Map || data['schemaVersion'] is! int || ![1,2].contains(data['schemaVersion']) || data['kind'] != 'android-groovebox' || data['ppqn'] != 960) {
       throw const FormatException('Unsupported project schema');
     }
     final version = data['schemaVersion'];

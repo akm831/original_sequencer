@@ -38,8 +38,8 @@ typedef struct PrototypeSequenceState {
 } PrototypeSequenceState;
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint32_t mask, uint32_t accents, float level, int32_t muted);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_sound(void* handle, uint32_t pattern, uint32_t track, float pitch, float decay, float tone, float cutoff, float resonance, float envelope, uint32_t waveform);
-int32_t prototype_set_note(void* handle, uint32_t pattern, uint32_t track, uint32_t step, uint32_t note, int32_t flag);
-int32_t prototype_select_pattern(void* handle, uint32_t pattern);
+PROTOTYPE_FFI_EXPORT int32_t prototype_set_note(void* handle, uint32_t pattern, uint32_t track, uint32_t step, uint32_t note, int32_t flag);
+PROTOTYPE_FFI_EXPORT int32_t prototype_select_pattern(void* handle, uint32_t pattern);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_playing(void* handle, int32_t playing);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_bpm(void* handle, double bpm);
 PROTOTYPE_FFI_EXPORT int32_t prototype_set_step(void* handle, uint32_t step, int32_t enabled);
