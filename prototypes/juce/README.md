@@ -4,14 +4,12 @@ JUCE/C++ 中心構成の比較候補です。
 
 ## Current state
 
-- UI source: `app/Main.cpp`
-- Desktop / host build: `CMakeLists.txt`
-- Android Projucer project: `SequencerPrototype.jucer`
-- JUCE version: 9.0.2
-- Common Reference Audio CoreはCandidate Aと共有
-- `juce::AudioAppComponent`でP1 Audio Device callbackのsource wiringを追加済み
-- Callbackではまずsilenceを維持し、Actual Sample Rate / Callback Framesを5 HzのDiagnostics表示へ渡す
-- Audio callbackからUI objectは触らず、表示用の値はatomic snapshotを介してMessage Threadから読む
+- UI source: `app/Main.cpp`。Play / Stop、60〜240 BPM、16-step Grid、診断切り替え
+- JUCE 9.0.2、Framework非依存のCommon C++ Core / SchedulerをFlutterと共有
+- Native Control Threadが5 ms周期で予約し、Audio CallbackでPlanar / Sample Offset Render
+- UIは60 Hzで再生位置を観測、負荷診断は5 Hz。CallbackからUI Objectを操作しない
+- Desktop / host build: `CMakeLists.txt`。Android: `SequencerPrototype.jucer`から自動Export
+- Android APK compile / link / packaging成功（Run `37127513073`）。P4実機確認は未実施
 
 ## Android build path
 
@@ -76,34 +74,11 @@ JUCE 9系ではAndroid SDK / NDKのローカルpathを各Exporterへ埋め込む
 
 `.jucer`には`app/Main.cpp`、Common Reference Audio Core、P1で必要な`juce_audio_basics` / `juce_audio_devices` / `juce_audio_utils` modulesを登録しています。
 
-## P1 callback flow
+## Callbackと比較の責務
 
-```text
-JUCE Audio Device
-  ↓
-AudioAppComponent::getNextAudioBlock()
-  ├─ output bufferをclearしてsilenceを維持
-  ├─ actual callback frame countをatomic snapshotへ記録
-  └─ Common AudioCore::render(...)
+AudioAppComponent::getNextAudioBlockはCommon CoreのRenderとTiming記録のみ。UI / Scheduler / LifecycleのMutexを取得しません。共有Schedulerへの操作はControl側で直列化します。Device再準備時は旧Timeline / Commandを捨て、Transport停止状態へ戻します。
 
-Message Thread Timer (5 Hz)
-  ↓
-actual sample rate / callback frames / restart countを表示
-```
-
-`AudioCore::diagnostics()`のUI Threadからの直接読取りは、P2でthread-safe snapshot契約を整えるまで行いません。P1ではCandidate側の小さなatomic値だけを表示に使います。
-
-## Next Android work
-
-1. JUCE 9.0.2 Projucerで`Builds/Android`を実生成する
-2. 生成されたGradle設定でcompile / target SDK 36、min SDK 24、NDK 28.2.13676358を実確認する
-3. Android実機でlaunchし、Audio callbackが継続して動くことを確認する
-4. 画面上でActual Sample Rate / Callback Framesを確認・記録する
-5. 次にsilenceからsine outputへ進める
-6. P2でCommon Coreのthread-safe Diagnostics snapshotとCallback Load計測へ進める
-
-生成物を無条件にRepositoryへ大量commitするのではなく、再生成元の`.jucer`と手順を正本として維持します。
-
+`.jucer`と生成後設定Scriptを正本として維持し、生成Gradle Projectは大量Commitしません。次の検証はP4の実機比較です。
 
 ## 2026-10-02: P3 Scheduled Trigger / P2 Diagnostics
 
@@ -113,7 +88,7 @@ JUCEのPlanar AudioBufferはCommon CoreへChannel Pointerと`startSample`を渡�
 
 Command投入と`prepareToPlay` / `releaseResources`をControl側Mutexで直列化します。通常の`getNextAudioBlock`はMutexを取得しません。Queue / Trigger Diagnosticsに加え、Flutterと同じCoreのCallback Load / P95 / P99 / Peak / Timelineを表示します。
 
-JUCE 9.0.2公式HeaderでC++構文検査は成功していますが、Link / Android build / 実機P2・P3は未実施です。既存のP1実機結果は過去の連続Test Toneに対する結果です。
+当時はJUCE 9.0.2 Headerによる構文検査のみでした。その後P4のAndroid compile / linkが成功しました。JUCE実機P2〜P4は未確認です。既存のP1実機結果は過去の連続Test Toneに対する結果です。
 
 ## P4 Play / Stop、BPM、16 Steps
 
@@ -135,3 +110,5 @@ python3 prototypes/juce/verify_android_export.py --require-generated
 ```
 
 M4 MacのAndroid StudioではARM64 AVDへAPKをInstallしてUI / 基本発音を確認できます。実音声Latency、Route Change、継続負荷はAndroid実機で比較します。比較手順は`docs/framework-comparison.md`のP4項を参照してください。
+
+比較用APK: https://github.com/akm831/original_sequencer/actions/runs/37127513073 。Artifacts内の`juce-arm64-debug.apk`をInstallしてください（保存期限2026-10-17）。

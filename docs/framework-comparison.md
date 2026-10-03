@@ -358,3 +358,17 @@ FlutterのUI / P4発音はユーザーが良好と確認済み。JUCE P4は実�
 5. UIの操作感、表示と音の同期、Build / Debug負担を記録
 
 M4 MacのARM64 EmulatorはUI / 基本動作確認に利用する。Audio Deadline / Latency / Device Routeの比較値は実機で評価する。P4は1 Voiceの検証音のみで、32 Voice Benchmark、Live Pad、Sampler / Synth、iOS Must Smokeの代わりにはならない。
+
+### P4結果の現在地
+
+| 項目 | Flutter + Native | JUCE |
+|---|---|---|
+| 共有Core / 16 Steps / BPM / Stop-Play | 実装・Host検証済み | 同じCoreを接続・Host検証済み |
+| Android compile / link / APK | 成功（Run 37127513070） | 成功（Run 37127513073） |
+| P4実機発音・UI | ユーザーが良好と確認 | 確認待ち |
+| 48 kHz / callbackFrames | 48000 / 96 (min 96 / max 96) | 確認待ち |
+| Load P95 / P99 | 0.6% / 0.8%（ユーザー画像） | 確認待ち |
+| missedSteps / overflow | 0 / 0（ユーザー画像） | 確認待ち |
+| Route Change / Live Pad / Poly Voice Benchmark | 未確認 / 未実装 | 未確認 / 未実装 |
+
+Buildの成立と実音声評価を区別する。ユーザー画像の値はその時点の観測で、同条件の10分Benchmark結果ではない。

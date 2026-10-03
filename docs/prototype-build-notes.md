@@ -239,3 +239,13 @@ Run `37124704514`ですべて成功: C++ tests 6本、Flutter analyze、Widget t
 3. 利用可能な有線 / Bluetooth等でRoute Change後の無音 / 再開 / Restart Countを確認。長時間の実音声再生でSkip / Overflow / 音切れが増えないか確認
 
 1〜2はM4 MacのARM64 Emulatorでも確認可能。3のLatency、Device固有挙動、継続負荷はAndroid実機で確認する。Coreの30分相当Soakは加速したFrame Timeline検証であり、30分の実時間Device評価ではない。Technology確定にはJUCE同等経路の実機比較が残る。
+
+## 2026-10-03 — JUCE P4比較用APK
+
+JUCE Run `37127513073`で共通C++ tests 6本、JUCE 9.0.2 Projucer compile / export、生成設定検査、ARM64 Android compile / link、JNI同梱検査が成功。Artifact `11275597857`、PR #5統合済み。Build初回はLinux XInput Headerが不足し、CIへlibxi-dev追加後に成功した。
+
+配布ページ: https://github.com/akm831/original_sequencer/actions/runs/37127513073 。GitHubログイン後Artifactsを展開し、juce-arm64-debug.apkをInstallする。App名はSequencerJUCE、Application IDはcom.originalsequencer.juceprototypeで、Flutter版を削除せず併存できる。
+
+Flutter側もRun `37127513070`でC++ / Widget tests、analyze、APK / Native Library Packaging成功。Artifact `11274938411`。比較対象の音源とSchedulerは同じ共通C++を使用する。
+
+次は人によるJUCE実機の発音 / BPM / Steps / Stop-Play / Suspend-Resume確認と、docs/framework-comparison.mdの同条件比較。Route Change、Live Pad、Poly Voice / Benchmark、iOS Must Smokeは未完了で、Technology採用は未確定。

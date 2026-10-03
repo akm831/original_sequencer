@@ -36,7 +36,7 @@ Touch-first Groovebox / Sequencer。初期約8 Tracks、各TrackがSamplerまた
 - Host tests 4本、UndefinedBehaviorSanitizer / ThreadSanitizer、Oboe 1.10.0ヘッダーによるAndroid C++構文検査が成功。その後GitHub ActionsでFlutter / NDK build成功。P3実機発音は2026-10-03にユーザー確認
 
 - JUCEへ同じScheduled Trigger入力・P2 Timing / Percentile計測・Queue表示を接続。CoreへPlanar出力を追加し、Android Interleaved出力との波形一致をHost検証
-- JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。JUCEのLink / Android実build・実機確認は未実施
+- JUCE 9.0.2公式HeaderでMain.cppの構文検査成功。その後P4でAndroid compile / link / packaging成功。JUCE P4実機確認は未実施
 
 - Flutter候補の自動Build Workflowを追加: C++ tests → Flutter analyze → ARM64 Debug APK → Native Library Packaging検査 → Artifact保存。初回Run `36962438772`ですべて成功
 
@@ -74,7 +74,7 @@ P4の実装:
 - Run `37124704514`でC++ tests 6本、Flutter analyze、Widget tests 7本、ARM64 APK Build / Native Library Packagingが成功。Artifact `11274344868`（2026-10-17まで）、Version 0.0.2+2、PR #4をmainへ統合。画面サイズ / 文字倍率 / 操作Intent / 診断更新と、Coreの30分相当×2 Sample Rates、可変Buffer、1000回×2のStop / Play、Device Resetを自動検証済み。実Deviceの長時間負荷 / Route Changeは別途必要
 - Flutterの新UIについてユーザーが動作良好と確認（2026-10-03）。画像では48 kHz / callback 96、missedSteps / Overflow / Restart 0、p95 0.6% / p99 0.8%。App離脱とRoute Changeは未確認
 - JUCEに共有PrototypeSequencer、5 ms Control Thread、Play / Stop、60〜240 BPM、16 Steps、停止中の単発テスト、診断切り替えを接続。UI Timerは60 Hzで実行済み位置を観測し、負荷診断は5 Hz。Suspend時に停止、Resume時は自動再生しない
-- JUCE 9.0.2 HeaderでMain.cpp構文検査成功。Android自動Buildを追加し、Projucer Export → NDK / Java設定固定 → JNI同梱検査 → ARM64 APK Artifact保存を検証中
+- JUCE 9.0.2 HeaderでMain.cpp構文検査成功。Run `37127513073`で共通C++ tests 6本、Projucer Build / Export、設定検査、Android compile / link、JNI同梱検査、ARM64 APK保存すべて成功。Artifact `11275597857`（2026-10-17まで）。PR #5をmainへ統合済み。Flutter側もRun `37127513070`でtests / analyze / APKが成功
 - JUCEのApplication IDをcom.originalsequencer.juceprototypeへ分離し、Flutter版と併存可能にした。JUCE P4実機確認と技術選定は未完了
 
 次に進める主題:
