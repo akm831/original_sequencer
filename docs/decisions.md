@@ -585,3 +585,9 @@ Step長押しを詳細Editorへ変更。発音とAccent、Bass Note / Outgoing S
 AndroidではPlay直前にMEDIA / MUSICのAudio Focusを要求し、拒否時は再生しない。LOSS / LOSS_TRANSIENT / CAN_DUCKは停止し、GAIN時に自動再生しない。Stop / App離脱 / DisposeでFocusを返す。非同期Focus応答の世代を追跡し、Stop後の遅いGrantが勝手に再生を開始しないようにする。P3 Testも短時間だけFocusを取得。API 24〜25はLegacy AudioManager、26以降はAudioFocusRequestを利用。Oboe Usage / ContentTypeをFocus Attributesに合わせる。Background Playbackは追加しない。
 
 [Android公式Audio Focus文書](https://developer.android.com/media/optimize/audio-focus)を参照。実際の他アプリ割り込み / 通話 / Bluetooth経路はBuildやHost testのみでは保証できないため実機確認を残す。
+
+## 2026-10-04 — テストAPK署名固定とProject Backup
+
+従来CIはRunnerごとにAndroid default debug keystoreが変わり得るため、更新Installの署名互換性を保証できなかった。以後はRepository内の公開TEST ONLY PKCS12鍵でDebugを署名し、APKの証明書SHA-256をCIで検査・build-info.jsonへ記録する。この鍵は秘密ではなく製品Releaseに使わない。過去のAPKとは署名が異なる可能性があるため、初回移行前にProjectを退避する。過去APKのprivate signing keyは現在の成果物から復元できない。
+
+Android Storage Access Frameworkのファイル選択で現在のJSONを書き出し／読み込みできる。読み込みはサイズ上限・Schema検査・ユーザーReview・既存内部保存の別名Backupをすべて通してから反映する。Cancel / Parse Error / Backup Errorでは置き換えない。読めない旧保存のExportはUI Defaultではなく元のRaw JSONを使う。Sample Asset未導入のため今回はMetadata単体、製品Bundle Formatは後続。

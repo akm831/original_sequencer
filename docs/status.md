@@ -14,7 +14,7 @@
 
 - Version 0.0.4+4: Analog Percussion、Saw / Square Acid Bass、Pitch / Tone / Decay / Cutoff / Resonance / Filter Envelope、Bass Note / Accent / Slide、Hat開閉、Schema 1→2 Migrationを実装。Run `37132997199`でC++ tests 8本 / Flutter tests 14本 / analyze / ARM64 APK / Exported FFI Symbols検査が成功。PR #7をmain `b85aae8`へ統合。Artifact `11277543381`。音色の実機確認は未実施。
 
-- Version 0.0.5+5: 一括Track更新、Stop Fade / Retrigger smoothing、密な音源Stress Test、文字拡大Grid、Play Bank整合、保存Read上限、Audio Focus / 非同期Grant取消を追加。CI結果は最新PR参照。懸念点の台帳はdocs/android-audio-review.md。
+- Version 0.0.5+5: 一括Track更新、Stop Fade / Retrigger smoothing、密な音源Stress Test、文字拡大Grid、Play Bank整合、保存Read上限、Audio Focus / 非同期Grant取消を追加。公開テスト用署名の固定と証明書検査、JSON Import / Export、読めない保存のRaw Exportを追加。CI結果は最新PR参照。懸念点の台帳はdocs/android-audio-review.md、初回署名移行はdocs/android-update-backup.md。
 
 ## Important Decisions
 

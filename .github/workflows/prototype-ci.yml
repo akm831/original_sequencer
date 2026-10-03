@@ -88,6 +88,7 @@ jobs:
           import os
           import subprocess
           import tempfile
+          import re
           from pathlib import Path
           from zipfile import ZipFile
           apk = Path('build/app/outputs/flutter-apk/app-debug.apk')
@@ -109,12 +110,18 @@ jobs:
                   required_api = {'prototype_create', 'prototype_set_track', 'prototype_select_pattern', 'prototype_set_sound', 'prototype_set_note', 'prototype_update_track', 'prototype_get_sequence_state'}
                   if required_api - exported:
                       raise SystemExit(f'Native FFI symbols are missing: {sorted(required_api - exported)}')
+          apksigner = Path(os.environ['ANDROID_HOME']) / 'build-tools/36.0.0/apksigner'
+          certificate = subprocess.check_output([str(apksigner), 'verify', '--print-certs', str(apk)], text=True)
+          digest = re.search(r'certificate SHA-256 digest: ([0-9a-f]+)', certificate)
+          if not digest or digest.group(1) != '154118501928c87f983dae83d87559452dfbaf5500a9f1be8e7aa7c4000357bf':
+              raise SystemExit('APK does not use the stable prototype test certificate')
           metadata = {
               'commit': os.environ['GITHUB_SHA'],
               'run': os.environ['GITHUB_RUN_ID'],
               'flutter': os.environ['FLUTTER_VERSION'],
               'abi': 'arm64-v8a',
               'build_type': 'debug',
+              'signing_cert_sha256': digest.group(1),
               'sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
           }
           apk.with_name('build-info.json').write_text(json.dumps(metadata, indent=2) + '\n')

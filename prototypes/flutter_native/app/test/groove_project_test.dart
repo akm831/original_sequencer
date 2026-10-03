@@ -83,6 +83,21 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets('export preserves unreadable original data instead of exporting defaults', (tester) async {
+    const original='{"schemaVersion":99,"important":"keep me"}';
+    String? exported;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('original_sequencer/project'),(call) async {
+        if(call.method=='load') return original;
+        if(call.method=='export') {exported=call.arguments as String;return true;}
+        return null;
+      });
+    await tester.pumpWidget(const PrototypeApp()); await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('プロジェクト')); await tester.pumpAndSettle();
+    await tester.tap(find.text('ファイルへ書き出す')); await tester.pumpAndSettle();
+    expect(exported,original);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('unreadable save blocks overwriting', (tester) async {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('original_sequencer/project'), (call) async => '{"schemaVersion":99}');

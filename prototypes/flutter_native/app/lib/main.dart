@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'groove_project.dart';
 import 'audio_focus_gate.dart';
+import 'project_importer.dart';
 import 'native_bridge.dart';
 import 'sequencer_panel.dart';
 import 'diagnostics_screen.dart';
@@ -112,6 +113,58 @@ class _PrototypeScreenState extends State<PrototypeScreen>
       if (mounted && source == _project.encode()) setState(() => _saveStatus = '保存済み');
     } catch (error) {
       if (mounted) setState(() => _saveStatus = '保存できませんでした。保存ボタンで再試行できます');
+    }
+  }
+
+  Future<void> _exportProject() async {
+    try {
+      await _setPlaying(false);
+      final source=_saveBlocked ? await _storage.invokeMethod<String>('load') : _project.encode();
+      if(source==null) throw StateError('Project is unavailable');
+      final saved=await _storage.invokeMethod<bool>('export',source);
+      if(mounted && saved==true) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('プロジェクトをファイルへ書き出しました。')));
+    } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('書き出せませんでした。保存先を変えて再試行してください。')));
+    }
+  }
+
+  Future<void> _importProject() async {
+    try {
+      await _setPlaying(false);
+      await ProjectImporter(
+        read:()=>_storage.invokeMethod<String>('import'),
+        confirm:(imported) async {
+          if(!mounted) return false;
+          return await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
+            title:const Text('プロジェクトを読み込みますか？'),
+            content:Text('4パターン・音色・BPMを置き換えます。読み込み前の内部保存は別名で保管します。\nBPM: ${imported.bpm.round()}'),
+            actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('キャンセル')),
+              FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('読み込む'))],
+          )) ?? false;
+        },
+        backup:() async {
+          if(!mounted || _bridge==null) return false;
+          return await _storage.invokeMethod<bool>('backup_original')==true;
+        },
+        commit:(imported) async {
+          if(!mounted) throw StateError('Screen closed');
+          final bridge=_bridge;
+          if(bridge==null) throw StateError('Native audio is unavailable');
+          final original=_project;
+          _project=imported;
+          try { _applyProject(bridge); }
+          catch (_) { _project=original; _applyProject(bridge); rethrow; }
+          setState(() { _editingPattern=imported.selectedPattern; _saveBlocked=false; });
+          _refreshDiagnostics();
+          _saveTimer?.cancel();
+          await _saveProject();
+        },
+      ).run();
+    } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('読み込めませんでした。対応するプロジェクトJSONを選んでください。')));
     }
   }
 
@@ -373,7 +426,12 @@ class _PrototypeScreenState extends State<PrototypeScreen>
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => DiagnosticsScreen(status: _audioStatus, onTest: _trigger),
           )),
-        )],
+        ), PopupMenuButton<String>(tooltip:'プロジェクト',enabled:!_loading,onSelected:(value) {
+          if(value=='export') _exportProject(); else _importProject();
+        },itemBuilder:(_)=>[
+          const PopupMenuItem(value:'export',child:Text('ファイルへ書き出す')),
+          PopupMenuItem(value:'import',enabled:ready,child:const Text('ファイルから読み込む')),
+        ])],
       ),
       body: LayoutBuilder(builder: (context, constraints) {
         final content = Column(children: [
