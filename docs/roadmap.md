@@ -2,9 +2,13 @@
 
 このRoadmapは、早い段階から実際に演奏・検証できるVertical Sliceを作り、大きすぎて検証不能な構造を先に作らないため、段階的に進めます。
 
+## 現在の実装順（2026-10-03）
+
+Android Flutter経路を優先。Transport / 単音16 Steps / 表示同期は実機確認済み。次は4音源・4 Tracks・4 Patterns・Volume / Mute / Accent・内部保存をまとめた演奏Slice。以降Sampler Import、Engine選択、Note編集、Track Length、Project管理へ進む。JUCE比較や他Platform SmokeをAndroid機能開発の開始条件にしない。
+
 ## Phase 0 — 仕様策定
 
-Status: 現在のPhase。
+Status: 基本仕様策定済み。Androidの最小演奏Sliceを実装中。
 
 成果物:
 

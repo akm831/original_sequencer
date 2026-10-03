@@ -32,6 +32,8 @@ public:
     [[nodiscard]] bool setPlaying(bool playing) noexcept;
     [[nodiscard]] bool setBpm(double bpm) noexcept;
     [[nodiscard]] bool setStep(std::uint32_t step, bool enabled) noexcept;
+    [[nodiscard]] bool setTrack(std::uint32_t pattern, std::uint32_t track, std::uint32_t mask, std::uint32_t accents, float level, bool muted) noexcept;
+    [[nodiscard]] bool selectPattern(std::uint32_t pattern) noexcept;
     [[nodiscard]] SequenceState sequenceState() noexcept;
     void initializeWhenStopped(double sampleRate, std::uint32_t maxCallbackFrames) noexcept;
 

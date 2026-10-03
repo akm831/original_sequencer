@@ -12,6 +12,7 @@ struct SequenceState {
     std::uint32_t stepMask = 0x1111;
     std::uint32_t currentStep = 16; // 16 = no audible playhead
     std::uint64_t missedSteps = 0;
+    std::uint32_t currentPattern = 0, queuedPattern = 4;
 };
 
 // Control-side model/scheduler. All calls are serialized by the adapter;
@@ -24,6 +25,11 @@ public:
 
     void deviceReset() noexcept { stop(); missedSteps_ = 0; }
     void stop() noexcept {
+        if (running_) {
+            const auto d = core_.diagnostics();
+            if (d.sequenceStep < 16) activePattern_ = d.sequencePattern;
+        }
+        queuedPattern_ = 4;
         running_ = false;
         if (++generation_ == 0) ++generation_;
         core_.setSequenceGeneration(generation_);
@@ -51,6 +57,20 @@ public:
         if (enabled) mask_ |= (1U << step); else mask_ &= ~(1U << step);
         return true;
     }
+    struct Track { std::uint32_t mask = 0, accents = 0; float level = 0.8F; bool muted = false; };
+    [[nodiscard]] bool setTrack(std::uint32_t pattern, std::uint32_t track, std::uint32_t mask,
+                               std::uint32_t accents, float level, bool muted) noexcept {
+        if (pattern >= 4 || track >= 4 || mask > 65535 || accents > 65535
+            || !std::isfinite(level) || level < 0 || level > 1) return false;
+        tracks_[pattern][track] = {mask, accents, level, muted}; groove_ = true;
+        return true;
+    }
+    [[nodiscard]] bool selectPattern(std::uint32_t pattern) noexcept {
+        if (pattern >= 4) return false;
+        if (running_) queuedPattern_ = pattern;
+        else { activePattern_ = pattern; queuedPattern_ = 4; }
+        return true;
+    }
     void advance() noexcept {
         if (!running_) return;
         const auto snapshot = core_.diagnostics();
@@ -67,21 +87,34 @@ public:
         for (std::uint32_t count = 0; count < 16 && nextFrame_ < horizon; ++count) {
             if (nextFrame_ > std::numeric_limits<std::uint64_t>::max() - 1.0L) { stop(); return; }
             const auto target = static_cast<std::uint64_t>(std::floor(nextFrame_ + 0.5L));
-            const auto type = (mask_ & (1U << nextStep_)) ? AudioCommandType::trigger : AudioCommandType::sequenceStep;
-            if (!core_.enqueueCommand({type, target, 0, 1.0F, generation_, nextStep_})) {
-                stop(); // Overflow never waits or creates a catch-up burst.
-                return;
+            if (groove_ && nextStep_ == 0 && queuedPattern_ < 4) activePattern_ = queuedPattern_;
+            const auto type = !groove_ && (mask_ & (1U << nextStep_)) ? AudioCommandType::trigger : AudioCommandType::sequenceStep;
+            if (!core_.enqueueCommand({type, target, 0, 1.0F, generation_, nextStep_, activePattern_})) { stop(); return; }
+            if (groove_) {
+                for (std::uint32_t track = 0; track < 4; ++track) {
+                    const auto& data = tracks_[activePattern_][track];
+                    if (data.muted || !(data.mask & (1U << nextStep_))) continue;
+                    const auto velocity = (data.accents & (1U << nextStep_)) ? 1.0F : 0.65F;
+                    if (!core_.enqueueCommand({AudioCommandType::trigger, target, track + 1,
+                        data.level * velocity, generation_, nextStep_, activePattern_})) { stop(); return; }
+                }
             }
             nextFrame_ += period; // retain fractional frames to avoid tempo drift
             nextStep_ = (nextStep_ + 1) % 16;
         }
     }
     [[nodiscard]] SequenceState state() const noexcept {
+        const auto d = core_.diagnostics();
         return {bpm_, running_ ? 1U : 0U, mask_,
-                running_ ? core_.diagnostics().sequenceStep : 16U, missedSteps_};
+                running_ ? d.sequenceStep : 16U, missedSteps_,
+                running_ && d.sequenceStep < 16 ? d.sequencePattern : activePattern_,
+                running_ && queuedPattern_ != d.sequencePattern ? queuedPattern_ : 4U};
     }
 
 private:
+    std::array<std::array<Track, 4>, 4> tracks_{};
+    bool groove_ = false;
+    std::uint32_t activePattern_ = 0, queuedPattern_ = 4;
     AudioCore& core_;
     double bpm_ = 120.0;
     double sampleRate_ = 0.0;

@@ -84,6 +84,27 @@ int32_t prototype_schedule_trigger(void* handle, uint32_t delay_frames, float va
 #endif
 }
 
+int32_t prototype_set_track(void* handle, uint32_t pattern, uint32_t track, uint32_t mask, uint32_t accents, float level, int32_t muted) {
+    if (!handle) return 0;
+#if defined(__ANDROID__)
+    return asEngine(handle)->audio.setTrack(pattern, track, mask, accents, level, muted != 0) ? 1 : 0;
+#else
+    auto& engine = *asEngine(handle);
+    std::lock_guard<std::mutex> lock(engine.producerMutex);
+    return engine.sequencer.setTrack(pattern, track, mask, accents, level, muted != 0) ? 1 : 0;
+#endif
+}
+int32_t prototype_select_pattern(void* handle, uint32_t pattern) {
+    if (!handle) return 0;
+#if defined(__ANDROID__)
+    return asEngine(handle)->audio.selectPattern(pattern) ? 1 : 0;
+#else
+    auto& engine = *asEngine(handle);
+    std::lock_guard<std::mutex> lock(engine.producerMutex);
+    return engine.sequencer.selectPattern(pattern) ? 1 : 0;
+#endif
+}
+
 int32_t prototype_set_playing(void* handle, int32_t playing) {
     if (!handle) return 0;
 #if defined(__ANDROID__)
@@ -119,7 +140,7 @@ int32_t prototype_set_step(void* handle, uint32_t step, int32_t enabled) {
 }
 
 PrototypeSequenceState prototype_get_sequence_state(void* handle) {
-    if (!handle) return {120.0, 0, 0, 16, 0};
+    if (!handle) return {120.0, 0, 0, 16, 0, 0, 4};
 #if defined(__ANDROID__)
     const auto s = asEngine(handle)->audio.sequenceState();
 #else
@@ -127,7 +148,7 @@ PrototypeSequenceState prototype_get_sequence_state(void* handle) {
     std::lock_guard<std::mutex> lock(engine.producerMutex);
     const auto s = engine.sequencer.state();
 #endif
-    return {s.bpm, s.running, s.stepMask, s.currentStep, s.missedSteps};
+    return {s.bpm, s.running, s.stepMask, s.currentStep, s.missedSteps, s.currentPattern, s.queuedPattern};
 }
 
 #if !defined(__ANDROID__)

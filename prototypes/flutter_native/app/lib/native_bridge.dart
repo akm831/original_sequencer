@@ -63,6 +63,10 @@ final class _SequenceNative extends Struct {
   external int currentStep;
   @Uint64()
   external int missedSteps;
+  @Uint32()
+  external int currentPattern;
+  @Uint32()
+  external int queuedPattern;
 }
 
 typedef _PlayingNative = Int32 Function(Pointer<Void>, Int32);
@@ -74,14 +78,20 @@ typedef _StepDart = int Function(Pointer<Void>, int, int);
 typedef _SequenceGetNative = _SequenceNative Function(Pointer<Void>);
 typedef _SequenceGetDart = _SequenceNative Function(Pointer<Void>);
 
+typedef _TrackNative = Int32 Function(Pointer<Void>, Uint32, Uint32, Uint32, Uint32, Float, Int32);
+typedef _TrackDart = int Function(Pointer<Void>, int, int, int, int, double, int);
+typedef _PatternNative = Int32 Function(Pointer<Void>, Uint32);
+typedef _PatternDart = int Function(Pointer<Void>, int);
+
 class PrototypeSequenceState {
   const PrototypeSequenceState(this.bpm, this.running, this.stepMask,
-    this.currentStep, this.missedSteps);
+    this.currentStep, this.missedSteps, [this.currentPattern = 0, this.queuedPattern = 4]);
   final double bpm;
   final bool running;
   final int stepMask;
   final int currentStep;
   final int missedSteps;
+  final int currentPattern, queuedPattern;
 }
 
 class PrototypeDiagnostics {
@@ -127,7 +137,7 @@ class PrototypeDiagnostics {
 class PrototypeNativeBridge {
   PrototypeNativeBridge._(this._handle, this._destroy, this._startAudio,
     this._stopAudio, this._getDiagnostics, this._scheduleTrigger,
-    this._setPlaying, this._setBpm, this._setStep, this._getSequence);
+    this._setPlaying, this._setBpm, this._setStep, this._getSequence, this._setTrack, this._selectPattern);
 
   factory PrototypeNativeBridge.open() {
     if (!Platform.isAndroid) {
@@ -144,10 +154,12 @@ class PrototypeNativeBridge {
     final setBpm = library.lookupFunction<_BpmNative, _BpmDart>('prototype_set_bpm');
     final setStep = library.lookupFunction<_StepNative, _StepDart>('prototype_set_step');
     final getSequence = library.lookupFunction<_SequenceGetNative, _SequenceGetDart>('prototype_get_sequence_state');
+    final setTrack = library.lookupFunction<_TrackNative, _TrackDart>('prototype_set_track');
+    final selectPattern = library.lookupFunction<_PatternNative, _PatternDart>('prototype_select_pattern');
     final handle = create();
     if (handle == nullptr) throw StateError('prototype_create returned a null handle.');
     return PrototypeNativeBridge._(handle, destroy, startAudio,
-      stopAudio, getDiagnostics, scheduleTrigger, setPlaying, setBpm, setStep, getSequence);
+      stopAudio, getDiagnostics, scheduleTrigger, setPlaying, setBpm, setStep, getSequence, setTrack, selectPattern);
   }
 
   final Pointer<Void> _handle;
@@ -160,7 +172,18 @@ class PrototypeNativeBridge {
   final _BpmDart _setBpm;
   final _StepDart _setStep;
   final _SequenceGetDart _getSequence;
+  final _TrackDart _setTrack;
+  final _PatternDart _selectPattern;
   bool _disposed = false;
+
+  bool setTrack(int pattern, int track, int mask, int accents, double level, bool muted) {
+    _checkOpen();
+    return _setTrack(_handle, pattern, track, mask, accents, level, muted ? 1 : 0) != 0;
+  }
+  bool selectPattern(int pattern) {
+    _checkOpen();
+    return _selectPattern(_handle, pattern) != 0;
+  }
 
   bool setPlaying(bool playing) {
     _checkOpen();
@@ -182,7 +205,7 @@ class PrototypeNativeBridge {
     _checkOpen();
     final n = _getSequence(_handle);
     return PrototypeSequenceState(n.bpm, n.running != 0, n.stepMask,
-      n.currentStep, n.missedSteps);
+      n.currentStep, n.missedSteps, n.currentPattern, n.queuedPattern);
   }
 
   void _checkOpen() {

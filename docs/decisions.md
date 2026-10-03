@@ -553,3 +553,13 @@ JUCEにも共有PrototypeSequencerを接続し、Android / Flutterと同じ960 P
 JUCE Androidは既存のProjucer Export経路を自動化する。JUCE 9.0.2をCommit `72782788ce18c2d4d760b28e0921d6ffc6431102`で検証し、SDK 36 / min 24、NDK 28.2.13676358、JDK 17を固定する。Exporterが固定出力するNDK 28.1とJava 8 toolchainだけ生成後Scriptで調整し、Java 8 bytecode互換性は保つ。生成Gradle Projectは保存元にせず.jucerとScriptを正本とする。
 
 Application IDはcom.originalsequencer.juceprototypeとしてFlutterと同時Install可能にする。P4 Build成功だけではTechnologyを決定せず、実機比較と既存Must Gateを維持する。
+
+## 2026-10-03 — Android優先の開発順とPlayable Groovebox
+
+ユーザーの明示指示により、Flutter / JUCEの交互比較を開発の前提から外し、実機で動作確認済みのFlutter + C++ / OboeをAndroidの当面の実装経路とする。JUCE比較Workflowは手動実行に変更。Web / iOS / Desktop互換性と最終Technology選定は後続段階で検証し、iOS Must SmokeをAndroid機能開発の開始条件にはしない。CoreへのAndroid API持ち込み禁止は維持する。
+
+次のVertical Sliceは4 Tracks × 4 Patterns × 16 Steps。Trackごとに独立した簡易合成音源（Kick / Snare / Hat / Bass）を同時発音し、Volume / Mute / Accentを編集できる。製品仕様の約8 Tracks、Engine選択、Note / Gate / Samplerは後続。これは最終SynthやVoice Budgetの実装ではない。長押しはこの段階ではAccent切り替えとし、製品Step Editorへ後で置き換える。
+
+Pattern選択は再生中は次の未予約の小節先頭に適用し、最新の予約要求を採用する。約50 msのLookahead内の予約済みEventは書き換えない。表示はAudio Callbackで実行済みのPattern / Stepを観測する。Stopは予約Patternを取り消し、最後に実行したPatternを保持し、次のPlayはStep 1から開始する。VoiceはTrackごとにMonophonic / Retrigger、Tailは最大200 ms。無音StepにもMarkerを置く。
+
+Android内部領域へVersion 1 / kind android-groovebox / PPQN 960のJSONを保存する。ModelとPlatform I/Oを分離し、BPM、編集Pattern、全TrackのEngine ID / Step / Accent / Volume / Muteを保存。Edit後500 ms debounce、手動保存、App離脱時保存。Kotlinの単一I/O ExecutorとAtomicFileで書き込み順と失敗時の旧データを保つ。未知Schema / 不正データ / 読み込み失敗は上書きを停止する。再起動時に復元し、自動再生しない。外部Import / Exportと製品Portable Project Formatは後続。

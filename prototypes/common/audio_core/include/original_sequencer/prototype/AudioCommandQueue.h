@@ -21,6 +21,7 @@ struct AudioCommand {
     float value = 1.0F;
     std::uint64_t sequenceGeneration = 0; // 0 = standalone P3 trigger
     std::uint32_t sequenceStep = 16;
+    std::uint32_t sequencePattern = 0;
 };
 
 template <std::size_t Capacity>
